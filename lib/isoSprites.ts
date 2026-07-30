@@ -3,9 +3,8 @@
 import { Sprite } from "./pixel";
 
 /**
- * Sprites for the isometric room. Boxes (desk, bed, sofa, wardrobe…) are drawn
- * procedurally by lib/iso.ts — these are the pieces that need real shapes:
- * the character, screens, plants and things hanging on walls.
+ * Sprites for the isometric room. Plain volumes (desk, bed, wardrobe…) are
+ * boxes drawn by lib/iso.ts — these are the pieces that need a real shape.
  */
 const BASE: Record<string, string> = {
   o: "#221f29",
@@ -13,13 +12,14 @@ const BASE: Record<string, string> = {
   s: "#e9b183",
   d: "#c98b60",
   l: "#ffd9ae",
-  h: "#3a2b21",
-  H: "#56402f",
+  h: "#3f2f23",
+  H: "#5c4531",
   c: "#3f6fa8",
   C: "#2f5480",
-  p: "#3a4048",
-  P: "#2a3037",
-  e: "#241d16",
+  w: "#dfe3ea",
+  p: "#343a44",
+  P: "#252a32",
+  e: "#211a13",
   g: "#7d7f88",
   G: "#4a4c54",
   y: "#b9bcc4",
@@ -27,7 +27,6 @@ const BASE: Record<string, string> = {
   n: "#8a5a34",
   N: "#5f3d22",
   m: "#b07a48",
-  w: "#f4f4f4",
   k: "#191720",
   b: "#7cc4ee",
   B: "#2e78ad",
@@ -47,104 +46,139 @@ function S(key: string, rows: string[], extra: Record<string, string> = {}): Spr
 
 /* ============================================================
    CHARACTER — front view from a high angle, seated at the desk.
-   Head is deliberately large (chunky pixel proportions).
+   18 x 34. Eyes on row 9, hands on rows 24-25, legs from row 28
+   (hidden behind the desk).
    ============================================================ */
 
 export const CHAR = S("char", [
-  ".......oooooooo",
-  ".....oohhhhhhhhoo",
-  "....ohhhhhhhhhhhho",
-  "...ohhhhhhhhhhhhhho",
-  "...ohhhhhhhhhhhhhho",
-  "...ohhhhhhhhhhhhhho",
-  "...ohhhssssssssshho",
-  "...ohhsssssssssssho",
-  "...ohhsskssssksssho",
-  "...ohhssssssssssho",
-  "...ohhsssssddssssho",
-  "....ohhsssssssssho",
-  ".....ohhsssssssho",
-  "......oooooooooo",
-  "........occcco",
-  "......oocccccccoo",
-  "....ooccCcccccCccoo",
-  "...occcCCcccccCCccco",
-  "...occcCCcccccCCccco",
-  "...occcCCcccccCCccco",
-  "...ossoCCcccccCCosso",
-  "...ossoCCcccccCCosso",
-  "...ooooCCCCCCCCCoooo",
-  ".......oCCCCCCCo",
-  ".......ooooooooo",
-  "........oppoppo",
-  "........oppoppo",
-  "........oppoppo",
-  "........oeeoeeo",
-  "........ooooooo"
+  "......oooooooo",
+  "....oohhhhhhhhoo",
+  "...ohhhhhhhhhhhho",
+  "..ohhhhhhhhhhhhhho",
+  "..ohhHhhhhhhhhHhho",
+  "..ohhhhhhhhhhhhhho",
+  "..ohhhsssssssshhho",
+  "..ohhsssssssssshho",
+  "..ohhsssssssssshho",
+  "..ohhsskssssksshho",
+  "..ohhsssssssssshho",
+  "..ohhssssddsssshho",
+  "..ohhsssssssssshho",
+  "...ohhsssssssshho",
+  "....ohhssssssho",
+  "........ossso",
+  "....oocccccccoo",
+  "..oocccccccccccoo",
+  "..oCcccwwwwcccCo",
+  "..oCcccwwwwcccCo",
+  "..oCcccwwwwcccCo",
+  "..oCcccwwwwcccCo",
+  "..oCcccwwwwcccCo",
+  "..oCcccwwwwcccCo",
+  ".osscccwwwwcccsso",
+  ".osscccwwwwcccsso",
+  "..oCcccwwwwcccCo",
+  "..oCCCCCCCCCCCCo",
+  "....oppo..oppo",
+  "....oppo..oppo",
+  "....oppo..oppo",
+  "....oppo..oppo",
+  "....oeeo..oeeo",
+  "....oooo..oooo"
 ]);
 
-/** Closed eyes, drawn over the face during a blink. */
-export const CHAR_BLINK = S("char-blink", ["oo..oo"], { o: "#c07f57" });
+/** Closed eyelids, dropped over the two eye pixels. */
+export const CHAR_BLINK = S("char-blink", ["d....d"]);
+
+/** Office chair — wider than the torso so it reads behind the shoulders. */
+export const CHAIR_BACK = S("chair-back", [
+  "...oooooooooooo",
+  "..oGkkkkkkkkkkGo",
+  "..oGkkkkkkkkkkGo",
+  "..oGkkkkkkkkkkGo",
+  ".ooGkkkkkkkkkkGoo",
+  ".oGGkkkkkkkkkkGGo",
+  ".oGGkkkkkkkkkkGGo",
+  ".oGGkkkkkkkkkkGGo",
+  ".oGGkkkkkkkkkkGGo",
+  ".oGGkkkkkkkkkkGGo",
+  ".ooGkkkkkkkkkkGoo",
+  "..oGkkkkkkkkkkGo",
+  "..oooooooooooooo"
+]);
 
 /* ============================================================
-   SCREENS
+   SCREENS — we sit behind them, so we see the back panel plus
+   the light spilling around its edges.
    ============================================================ */
 
-/** Monitor seen from behind — it faces the character, away from us. */
 export const MONITOR_BACK = S("monitor-back", [
-  "oooooooooooooooooooooooooo",
-  "oGGGGGGGGGGGGGGGGGGGGGGGGo",
-  "oGyyyyyyyyyyyyyyyyyyyyyyGo",
-  "oGyGGGGGGGGGGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGGGGGGGGGGyGo",
-  "oGyyyyyyyyyyyyyyyyyyyyyyGo",
-  "oGGGGGGGGGGGGGGGGGGGGGGGGo",
-  "oooooooooooooooooooooooooo",
-  ".........oGGGGGGo",
-  ".........oGGGGGGo",
-  "......ooooGGGGGGoooo",
-  "......oGGGGGGGGGGGGo",
-  "......oooooooooooooo"
+  "..oooooooooooooooooooooooooo",
+  "..obbbbbbbbbbbbbbbbbbbbbbbbo",
+  "..oGGGGGGGGGGGGGGGGGGGGGGGGo",
+  "..oGyyyyyyyyyyyyyyyyyyyyyyGo",
+  "..oGyGGGGGGGGGGGGGGGGGGGGyGo",
+  "..oGyGGGGGGGGGGGGGGGGGGGGyGo",
+  "..oGyGGGGGGGGGGGGGGGGGGGGyGo",
+  "..oGyGGGGGGGGGGGGGGGGGGGGyGo",
+  "..oGyGGGGGGGGGGGGGGGGGGGGyGo",
+  "..oGyGGGGGGGGGGGGGGGGGGGGyGo",
+  "..oGyGGGGGGGGGGGGGGGGGGGGyGo",
+  "..oGyyyyyyyyyyyyyyyyyyyyyyGo",
+  "..oGGGGGGGGGGGGGGGGGGGGGGGGo",
+  "..oooooooooooooooooooooooooo",
+  "...........oGGGGGGo",
+  "...........oGGGGGGo",
+  "........oooqGGGGGGqooo",
+  "........oqqqqqqqqqqqqo",
+  "........oooooooooooooo"
 ]);
 
 export const MONITOR_BACK_SMALL = S("monitor-back-small", [
-  "oooooooooooooooooo",
-  "oGGGGGGGGGGGGGGGo",
-  "oGyyyyyyyyyyyyyGo",
-  "oGyGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGyGo",
-  "oGyGGGGGGGGGGGyGo",
-  "oGyyyyyyyyyyyyyGo",
-  "oGGGGGGGGGGGGGGGo",
-  "oooooooooooooooooo",
-  "......oGGGGo",
-  "......oGGGGo",
-  "...ooooGGGGoooo",
-  "...oGGGGGGGGGGo",
-  "...oooooooooooo"
+  ".oooooooooooooooooo",
+  ".obbbbbbbbbbbbbbbbo",
+  ".oGGGGGGGGGGGGGGGGo",
+  ".oGyyyyyyyyyyyyyyGo",
+  ".oGyGGGGGGGGGGGGyGo",
+  ".oGyGGGGGGGGGGGGyGo",
+  ".oGyGGGGGGGGGGGGyGo",
+  ".oGyGGGGGGGGGGGGyGo",
+  ".oGyyyyyyyyyyyyyyGo",
+  ".oGGGGGGGGGGGGGGGGo",
+  ".oooooooooooooooooo",
+  ".......oGGGGo",
+  ".......oGGGGo",
+  "....oooqGGGGqooo",
+  "....oqqqqqqqqqqo",
+  "....oooooooooooo"
+]);
+
+/** Keyboard lying flat on the desk. */
+export const KEYBOARD_ISO = S("keyboard-iso", [
+  ".....oooooooooo",
+  "...oooGGGGGGGGGooo",
+  ".ooGGGGGGGGGGGGGGGo",
+  "oGGyGyGyGyGyGyGyGGo",
+  "oGGGGGGGGGGGGGGGGGo",
+  ".ooGGGGGGGGGGGGGoo",
+  "...oooGGGGGGGooo",
+  ".....oooooooo"
 ]);
 
 export const LAPTOP_ISO = S("laptop-iso", [
-  ".oooooooooooooooooo",
-  ".oGGGGGGGGGGGGGGGo",
-  ".oGyyyyyyyyyyyyyGo",
-  ".oGyGGGGGGGGGGGyGo",
-  ".oGyGGGGGGGGGGGyGo",
-  ".oGyGGGGGGGGGGGyGo",
-  ".oGyyyyyyyyyyyyyGo",
-  ".oGGGGGGGGGGGGGGGo",
-  ".oooooooooooooooooo",
+  "..oooooooooooooooo",
+  "..obbbbbbbbbbbbbbo",
+  "..oGGGGGGGGGGGGGGo",
+  "..oGyyyyyyyyyyyyGo",
+  "..oGyGGGGGGGGGGyGo",
+  "..oGyGGGGGGGGGGyGo",
+  "..oGyyyyyyyyyyyyGo",
+  "..oGGGGGGGGGGGGGGo",
+  "..oooooooooooooooo",
   "oqqqqqqqqqqqqqqqqqqo",
   "oooooooooooooooooooo"
 ]);
 
-/** Wall-mounted TV. */
 export const TV_WALL = S("tv-wall", [
   "oooooooooooooooooooooooo",
   "okkkkkkkkkkkkkkkkkkkkkko",
@@ -155,7 +189,9 @@ export const TV_WALL = S("tv-wall", [
   "okbBBBBBBBBBBBBBBBBBBbko",
   "okbbbbbbbbbbbbbbbbbbbbko",
   "okkkkkkkkkkkkkkkkkkkkkko",
-  "oooooooooooooooooooooooo"
+  "oooooooooooooooooooooooo",
+  ".........okkkko",
+  ".........ooooooo"
 ]);
 
 /* ============================================================
@@ -163,34 +199,55 @@ export const TV_WALL = S("tv-wall", [
    ============================================================ */
 
 export const WINDOW_DAY = S("window-day", [
-  "oooooooooooooooooooooo",
-  "oNNNNNNNNNNNNNNNNNNNNo",
-  "oNbbbbbbbbNbbbbbbbbbNo",
-  "oNbbbbbbbbNbbbbbbbbbNo",
-  "oNbbbbbbbbNbbbbbbbbbNo",
-  "oNbbbbbbbbNbbbbbbbbbNo",
-  "oNNNNNNNNNNNNNNNNNNNNo",
-  "oNbbbbbbbbNbbbbbbbbbNo",
-  "oNbfffffffNfffffffffNo",
-  "oNbfffffffNfffffffffNo",
-  "oNNNNNNNNNNNNNNNNNNNNo",
-  "oooooooooooooooooooooo"
-], { b: "#8fc3dd", f: "#8a9a7f", N: "#6b5a45" });
+  "oooooooooooooooooooooooo",
+  "oNNNNNNNNNNNNNNNNNNNNNNo",
+  "oNbbbbbbbbbNbbbbbbbbbbNo",
+  "oNbbbbbbbbbNbbbbbbbbbbNo",
+  "oNbbbwbbbbbNbbbbbbwbbbNo",
+  "oNbbbbbbbbbNbbbbbbbbbbNo",
+  "oNNNNNNNNNNNNNNNNNNNNNNo",
+  "oNbbbbbbbbbNbbbbbbbbbbNo",
+  "oNbbbbbbbbbNbbbbbbbbbbNo",
+  "oNffFffffffNffffFfffffNo",
+  "oNFFFFFFFFFNFFFFFFFFFFNo",
+  "oNNNNNNNNNNNNNNNNNNNNNNo",
+  "oooooooooooooooooooooooo"
+], { b: "#93c8e0", w: "#c9e4f2", f: "#8d9c80", F: "#6f7d64", N: "#6b5a45" });
 
 export const WINDOW_NIGHT = S("window-night", [
-  "oooooooooooooooooooooo",
-  "oNNNNNNNNNNNNNNNNNNNNo",
-  "oNbbbbbbbbNbbbbbbbbbNo",
-  "oNbbbabbbbNbbbbbabbbNo",
-  "oNbbbbbbbbNbbbabbbbbNo",
-  "oNbbbbbbbbNbbbbbbbbbNo",
-  "oNNNNNNNNNNNNNNNNNNNNo",
-  "oNbbbabbbbNbbbbbbbbbNo",
-  "oNbbbbbbbbNbbbabbbbbNo",
-  "oNbbbbbbbbNbbbbbbbbbNo",
-  "oNNNNNNNNNNNNNNNNNNNNo",
-  "oooooooooooooooooooooo"
-], { b: "#1e2740", a: "#ffe9a8", N: "#4a4033" });
+  "oooooooooooooooooooooooo",
+  "oNNNNNNNNNNNNNNNNNNNNNNo",
+  "oNbbbbbbbbbNbbbbbbbbbbNo",
+  "oNbbbabbbbbNbbbbbbabbbNo",
+  "oNbbbbbbbbbNbbbabbbbbbNo",
+  "oNbbbbbbbbbNbbbbbbbbbbNo",
+  "oNNNNNNNNNNNNNNNNNNNNNNo",
+  "oNbbbabbbbbNbbbbbbbbbbNo",
+  "oNbbbbbbbbbNbbbabbbbbbNo",
+  "oNbbbbbbabbNbbbbbbbbbbNo",
+  "oNbbbbbbbbbNbbbbbbabbbNo",
+  "oNNNNNNNNNNNNNNNNNNNNNNo",
+  "oooooooooooooooooooooooo"
+], { b: "#1d2640", a: "#ffe9a8", N: "#4a4033" });
+
+/** Hangs down either side of the window. */
+export const CURTAIN = S("curtain", [
+  "oooooo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  "ouUuUuo",
+  ".oUuUo",
+  "..ooo"
+], { u: "#3f4d70", U: "#2c3752" });
 
 export const DOOR = S("door", [
   "oooooooooooooo",
@@ -199,11 +256,13 @@ export const DOOR = S("door", [
   "onmoooooooomno",
   "onmoNNNNNNomno",
   "onmoNNNNNNomno",
+  "onmoNNNNNNomno",
   "onmoooooooomno",
   "onmmmmmmmmmmno",
-  "onmmmmmmqmmmno",
+  "onmmmmmmmqmmno",
   "onmmmmmmmmmmno",
   "onmoooooooomno",
+  "onmoNNNNNNomno",
   "onmoNNNNNNomno",
   "onmoNNNNNNomno",
   "onmoooooooomno",
@@ -214,31 +273,32 @@ export const DOOR = S("door", [
 
 export const POSTER = S("poster", [
   "oooooooooo",
-  "obbbbbbbbo",
-  "obbbwwbbbo",
-  "obbwwwwbbo",
-  "obwwwwwwbo",
-  "obbwwwwbbo",
-  "obbbwwbbbo",
-  "obaaaaaabo",
+  "oBBBBBBBBo",
+  "oBBBwwBBBo",
+  "oBBwwwwBBo",
+  "oBwwwwwwBo",
+  "oBBwwwwBBo",
+  "oBBBwwBBBo",
+  "oBaaaaaaBo",
   "oooooooooo"
 ]);
 
 export const ART = S("art", [
-  "oooooooooooooooo",
-  "oaoooooooooooaoo",
-  "oaotttttttttoaoo",
-  "oaottuuuuuttoaoo",
-  "oaotuuwwwwuutoao",
-  "oaottuuwwuuttoao",
-  "oaotttuuuutttoao",
-  "oaottttttttttoao",
-  "oaoooooooooooaoo",
-  "oooooooooooooooo"
+  "oooooooooooooooooo",
+  "oaoooooooooooooooao",
+  "oaotttttttttttttoao",
+  "oaottuuuuuuuuttoao",
+  "oaotuuuwwwwwuuutoao",
+  "oaottuuwwwwwwuttoao",
+  "oaotttuuuwwuuutoao",
+  "oaottttuuuuutttoao",
+  "oaotttttttttttttoao",
+  "oaoooooooooooooooao",
+  "oooooooooooooooooo"
 ]);
 
 /* ============================================================
-   FLOOR OBJECTS (sprites drawn standing on a tile)
+   FLOOR & SURFACE OBJECTS
    ============================================================ */
 
 export const PLANT = S("plant", [
@@ -269,7 +329,7 @@ export const LAMP = S("lamp", [
   "....oGo",
   "....oGo",
   "..oooGooo",
-  "..oGGGGGo",
+  "..oqqqqqo",
   "..ooooooo"
 ]);
 
@@ -280,18 +340,6 @@ export const MUG = S("mug", [
   "owwwoo",
   ".ooo"
 ], { w: "#e6e9ef" });
-
-export const CHAIR_BACK = S("chair-back", [
-  "oooooooooo",
-  "oGkkkkkkGo",
-  "oGkkkkkkGo",
-  "oGkkkkkkGo",
-  "oGkkkkkkGo",
-  "oGkkkkkkGo",
-  "oGkkkkkkGo",
-  "oGkkkkkkGo",
-  "oooooooooo"
-]);
 
 export const SERVER = S("server", [
   "oooooooooooo",
@@ -309,36 +357,57 @@ export const SERVER = S("server", [
   "oooooooooooo"
 ]);
 
-/** Books standing on a shelf — bright spines against the wood. */
+/** Books standing on a shelf, uneven heights. */
 export const BOOKS = S("books", [
-  "rbfurbfaurbf",
-  "rbfurbfaurbf",
-  "rbfurbfaurbf",
-  "rbfurbfaurbf"
+  "..o..oo...o.",
+  "orobbooafuro",
+  "orobbooafuro",
+  "orobbooafuro",
+  "orobbooafuro",
+  "oooooooooooo"
 ]);
 
+/** Pillow, drawn as a flattened iso quad so it sits on the bed. */
 export const PILLOW = S("pillow", [
-  ".oooooooo",
+  "...oooo",
+  ".oowwwwoo",
   "owwwwwwwwo",
-  "owwwwwwwwo",
-  ".oooooooo"
-], { w: "#dfe3ea" });
+  ".ooywwyoo",
+  "...oooo"
+], { w: "#eef1f6", y: "#c8ccd6" });
 
+/** Covers the foot end of the bed, with a folded edge. */
 export const BLANKET = S("blanket", [
-  ".tttttttttt",
-  "tttttttttttt",
-  "TTTTTTTTTTTT"
+  "......oooooo",
+  "....oottttttoo",
+  "..oottttttttttoo",
+  "otttttttttttttto",
+  "oTTtttttttttttTo",
+  "oTTTTTTTTTTTTTTo",
+  ".ooTTTTTTTTTToo",
+  "...oooooooooo"
 ], { t: "#4a7fb5", T: "#35608c" });
 
+/** Sofa cushion. */
+export const CUSHION = S("cushion", [
+  "..oooooo",
+  ".otttttto",
+  "otttttttto",
+  "oTTTTTTTTo",
+  ".oTTTTTTo",
+  "..oooooo"
+], { t: "#59a196", T: "#3f7d72" });
+
 /* ============================================================
-   Outfits — you dress better as you climb.
+   Outfits — hoodie, sweater, shirt, suit. `w` is the shirt showing
+   through the open jacket.
    ============================================================ */
 
-export const OUTFITS: { c: string; C: string; p: string; P: string }[] = [
-  { c: "#6b6f78", C: "#4e525a", p: "#3a4048", P: "#2a3037" }, // worn grey hoodie
-  { c: "#3f6fa8", C: "#2f5480", p: "#3a4048", P: "#2a3037" }, // blue hoodie
-  { c: "#3f7d72", C: "#2d5b53", p: "#333a44", P: "#252b33" }, // teal sweater
-  { c: "#e8e8ec", C: "#c2c4cc", p: "#2f3440", P: "#232733" }, // white shirt
-  { c: "#2e3340", C: "#20242e", p: "#20242e", P: "#171a22" }, // dark suit
-  { c: "#1d1f26", C: "#14161c", p: "#14161c", P: "#0e1014" } // black tailored
+export const OUTFITS: { c: string; C: string; w: string; p: string; P: string }[] = [
+  { c: "#6b6f78", C: "#4e525a", w: "#7d828c", p: "#343a44", P: "#252a32" }, // worn hoodie
+  { c: "#3f6fa8", C: "#2f5480", w: "#5b8cc4", p: "#343a44", P: "#252a32" }, // blue hoodie
+  { c: "#3f7d72", C: "#2d5b53", w: "#56988c", p: "#2f3540", P: "#22262f" }, // teal sweater
+  { c: "#2e3340", C: "#20242e", w: "#e8e8ec", p: "#2b303b", P: "#1e222a" }, // shirt + jacket
+  { c: "#262b36", C: "#191d26", w: "#d8dbe4", p: "#20242e", P: "#161920" }, // dark suit
+  { c: "#17181e", C: "#0f1014", w: "#c9ccd6", p: "#14161c", P: "#0d0e12" } // tailored black
 ];

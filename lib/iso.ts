@@ -78,6 +78,25 @@ export interface BoxPal {
   top: string;
   left: string;
   right: string;
+  /** Silhouette outline. Without it, neighbouring furniture blurs together. */
+  edge?: string;
+}
+
+/** A 2:1 isometric line. `sx` is +1 for down-right, -1 for down-left. */
+function isoLine(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  steps: number,
+  sx: 1 | -1,
+  sy: 1 | -1,
+  colour: string
+): void {
+  ctx.fillStyle = colour;
+  const x0 = sx === 1 ? x : x - 2;
+  for (let k = 0; k < steps; k++) {
+    ctx.fillRect(x0 + sx * k * 2, y + sy * k, 2, 1);
+  }
 }
 
 /**
@@ -115,15 +134,106 @@ export function box(
   for (let k = 0; k < d * HTH; k++) {
     ctx.fillRect(sxx + k * 2, syy - k - h, 2, h + 1);
   }
-  void exx;
-  void eyy;
-
   // top
   for (let a = 0; a < w; a++) {
     for (let b = 0; b < d; b++) {
       tile(ctx, v, i + a, j + b, pal.top, h + lift);
     }
   }
+
+  if (!pal.edge) return;
+
+  // Outline: the four edges of the top face, then the three visible verticals.
+  const e = pal.edge;
+  const nx = isoX(v, i, j);
+  const ny = isoY(v, i, j) - h - lift;
+  const topW = [wxx, wyy - h] as const;
+  const topS = [sxx, syy - h] as const;
+  const topE = [exx, eyy - h] as const;
+
+  isoLine(ctx, nx, ny, w * HTH, 1, 1, e); // N -> E
+  isoLine(ctx, nx, ny, d * HTH, -1, 1, e); // N -> W
+  isoLine(ctx, topW[0], topW[1], w * HTH, 1, 1, e); // W -> S
+  isoLine(ctx, topE[0], topE[1], d * HTH, -1, 1, e); // E -> S
+
+  ctx.fillStyle = e;
+  ctx.fillRect(topW[0], topW[1], 1, h);
+  ctx.fillRect(topS[0], topS[1], 1, h);
+  ctx.fillRect(topE[0] - 1, topE[1], 1, h);
+}
+
+/**
+ * A horizontal detail line running along one of the two visible side faces,
+ * `up` pixels above its base — drawer fronts, shelf edges, door splits.
+ */
+export function faceLineSW(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  i: number,
+  j: number,
+  w: number,
+  d: number,
+  up: number,
+  colour: string,
+  lift = 0
+): void {
+  const x = isoX(v, i, j + d - 1) - HTW;
+  const y = isoY(v, i, j + d - 1) + HTH - lift - up;
+  isoLine(ctx, x, y, w * HTH, 1, 1, colour);
+}
+
+export function faceLineSE(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  i: number,
+  j: number,
+  w: number,
+  d: number,
+  up: number,
+  colour: string,
+  lift = 0
+): void {
+  const x = isoX(v, i + w - 1, j + d - 1);
+  const y = isoY(v, i + w - 1, j + d - 1) + TH - lift - up;
+  isoLine(ctx, x, y, d * HTH, 1, -1, colour);
+}
+
+/** A small mark (handle, knob, button) on a side face. */
+export function faceDotSW(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  i: number,
+  j: number,
+  d: number,
+  along: number,
+  up: number,
+  colour: string,
+  size = 2,
+  lift = 0
+): void {
+  const x = isoX(v, i, j + d - 1) - HTW + Math.round(along * 2);
+  const y = isoY(v, i, j + d - 1) + HTH - lift - up + Math.round(along);
+  ctx.fillStyle = colour;
+  ctx.fillRect(x, y, size, size);
+}
+
+export function faceDotSE(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  i: number,
+  j: number,
+  w: number,
+  d: number,
+  along: number,
+  up: number,
+  colour: string,
+  size = 2,
+  lift = 0
+): void {
+  const x = isoX(v, i + w - 1, j + d - 1) + Math.round(along * 2);
+  const y = isoY(v, i + w - 1, j + d - 1) + TH - lift - up - Math.round(along);
+  ctx.fillStyle = colour;
+  ctx.fillRect(x, y, size, size);
 }
 
 /* ---------- floor & walls ---------- */
@@ -186,32 +296,62 @@ export function wallNW(ctx: CanvasRenderingContext2D, v: View, pal: WallPal): vo
 /* ---------- things hanging on walls ---------- */
 
 /**
- * Draws a sprite sheared onto a wall plane.
- * `dir` = 1 for the back-right wall (y grows with x), -1 for the back-left one.
- * (x0, y0) is the sprite's top corner in screen space.
+ * Draws a sprite sheared onto a wall plane, always left-to-right from (x0, y0).
+ * `shear` is +1 on the back-right wall (the surface falls away to the right) and
+ * -1 on the back-left wall (it rises to the right).
  */
 export function drawOnWall(
   ctx: CanvasRenderingContext2D,
   s: Sprite,
   x0: number,
   y0: number,
-  dir: 1 | -1
+  shear: 1 | -1
 ): void {
   const src = spriteCanvas(s);
   const w = spriteWidth(s);
   for (let x = 0; x < w; x++) {
-    const dy = Math.floor(x / 2) * dir;
-    ctx.drawImage(src, x, 0, 1, src.height, Math.round(x0 + x * dir), Math.round(y0 + dy), 1, src.height);
+    const dy = Math.floor(x / 2) * shear;
+    ctx.drawImage(src, x, 0, 1, src.height, Math.round(x0 + x), Math.round(y0 + dy), 1, src.height);
   }
 }
 
-/** Wall anchor: `along` tiles from the north corner, `up` px above the floor. */
-export function wallAnchorNE(v: View, along: number, up: number): [number, number] {
-  return [isoX(v, 0, 0) + along * TW, isoY(v, 0, 0) + along * TH - up];
+/**
+ * Hangs a sprite on the back-right wall, `along` TILES from the room's north
+ * corner and `up` px above the floor. One tile along a wall is half a tile
+ * width on screen (HTW), not a full one.
+ */
+export function hangNE(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  s: Sprite,
+  along: number,
+  up: number
+): void {
+  const x = isoX(v, 0, 0) + Math.round(along * HTW);
+  const y = isoY(v, 0, 0) + Math.round(along * HTH) - up;
+  drawOnWall(ctx, s, x, y, 1);
 }
 
-export function wallAnchorNW(v: View, along: number, up: number): [number, number] {
-  return [isoX(v, 0, 0) - along * TW, isoY(v, 0, 0) + along * TH - up];
+/** Same for the back-left wall; `along` measures to the sprite's right edge. */
+export function hangNW(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  s: Sprite,
+  along: number,
+  up: number
+): void {
+  const w = spriteWidth(s);
+  const x = isoX(v, 0, 0) - Math.round(along * HTW) - w;
+  const y = isoY(v, 0, 0) + Math.round(along * HTH) - up + Math.floor(w / 2);
+  drawOnWall(ctx, s, x, y, -1);
+}
+
+/** Point on the back-right wall, for one-off details like a hanging bulb. */
+export function wallPointNE(v: View, along: number, up: number): [number, number] {
+  return [
+    isoX(v, 0, 0) + Math.round(along * HTW),
+    isoY(v, 0, 0) + Math.round(along * HTH) - up
+  ];
 }
 
 /* ---------- objects standing on the floor ---------- */

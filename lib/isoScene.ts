@@ -6,15 +6,19 @@ import {
   box,
   drawOnTile,
   drawOnWall,
+  faceDotSE,
+  faceDotSW,
+  faceLineSE,
+  faceLineSW,
   floor as drawFloor,
+  hangNE,
+  hangNW,
   isoX,
   isoY,
   tile,
-  tileEdge,
-  wallAnchorNE,
-  wallAnchorNW,
   wallNE,
-  wallNW
+  wallNW,
+  wallPointNE
 } from "./iso";
 import {
   ART,
@@ -23,7 +27,10 @@ import {
   CHAIR_BACK,
   CHAR,
   CHAR_BLINK,
+  CURTAIN,
+  CUSHION,
   DOOR,
+  KEYBOARD_ISO,
   LAMP,
   LAPTOP_ISO,
   MONITOR_BACK,
@@ -52,14 +59,16 @@ const ROOM_SIZE: [number, number][] = [
 
 const MARGIN = 6;
 const CAP_H = 3;
-const DESK_H = 12;
+const DESK_H = 13;
+
+/** Every piece of furniture is outlined in this, so nothing blurs together. */
+const EDGE = "#1b1922";
 
 function roomSize(tier: number): [number, number] {
   return ROOM_SIZE[Math.max(0, Math.min(ROOM_SIZE.length - 1, tier))];
 }
 
 function wallHeight(tier: number): number {
-  // Loft and villa get high ceilings.
   return tier === 3 || tier === 5 ? 68 : 56;
 }
 
@@ -69,10 +78,9 @@ function wallHeight(tier: number): number {
  */
 export function canvasSizeFor(tier: number): { w: number; h: number } {
   const [cols, rows] = roomSize(tier);
-  const wallH = wallHeight(tier);
   return {
     w: (cols + rows) * 16 + MARGIN * 2,
-    h: wallH + CAP_H + (cols + rows) * 8 + MARGIN * 2
+    h: wallHeight(tier) + CAP_H + (cols + rows) * 8 + MARGIN * 2
   };
 }
 
@@ -92,63 +100,58 @@ interface Palette {
   wallNE: string;
   wallNW: string;
   cap: string;
+  /** Skirting board — pale from the panel flat up, bare concrete in the cellar. */
   base: string;
   floorA: string;
   floorB: string;
 }
 
 const PALETTES: Palette[] = [
-  // 0 — cellar: damp concrete
   {
     wallNE: "#514c43",
     wallNW: "#3d3a34",
     cap: "#5e594e",
-    base: "#292724",
+    base: "#2b2924",
     floorA: "#403c36",
-    floorB: "#33302b"
+    floorB: "#34312c"
   },
-  // 1 — panel flat: tired wallpaper, wooden floor
   {
-    wallNE: "#8f8471",
-    wallNW: "#6f6759",
-    cap: "#a0967f",
-    base: "#4c443a",
+    wallNE: "#8f8a6a",
+    wallNW: "#706c50",
+    cap: "#9f9a78",
+    base: "#b9b58a",
     floorA: "#8e6742",
     floorB: "#7a5636"
   },
-  // 2 — proper flat
   {
-    wallNE: "#a6a396",
-    wallNW: "#82806f",
-    cap: "#bab7aa",
-    base: "#5c5449",
+    wallNE: "#a3a184",
+    wallNW: "#827f65",
+    cap: "#b4b294",
+    base: "#cfcba2",
     floorA: "#a67c51",
     floorB: "#8f6a44"
   },
-  // 3 — loft: concrete and glass
   {
-    wallNE: "#b2aea8",
-    wallNW: "#8d8984",
-    cap: "#c6c2bc",
-    base: "#484441",
+    wallNE: "#b0aca6",
+    wallNW: "#8b8781",
+    cap: "#c4c0ba",
+    base: "#d6d2cb",
     floorA: "#94897a",
     floorB: "#7d746a"
   },
-  // 4 — house: warm walls, oak floor
   {
-    wallNE: "#d2c8b5",
-    wallNW: "#aaa08e",
-    cap: "#e5ddcc",
-    base: "#6b5d49",
+    wallNE: "#d0c7ae",
+    wallNW: "#a69d86",
+    cap: "#e4dbc4",
+    base: "#eee5cf",
     floorA: "#b58551",
     floorB: "#9c7245"
   },
-  // 5 — villa: bright plaster, sea light
   {
     wallNE: "#efe6d8",
-    wallNW: "#cdc4b5",
+    wallNW: "#cbc2b3",
     cap: "#faf3e8",
-    base: "#877860",
+    base: "#f4ecdb",
     floorA: "#cebb98",
     floorB: "#b9a684"
   }
@@ -177,7 +180,7 @@ interface Layout {
  * Tiles are assigned so nothing ever overlaps, even in the 4x4 cellar:
  *   (0,0) shelf   (0,1) server   (0,rows-2..rows-1) bed
  *   (1..2,0) sofa   (cols-1,0) wardrobe   (cols-1,1) aquarium
- *   (cols-2,rows-3) you   (cols-2..cols-1,rows-2) desk   (cols-1,rows-1) plant
+ *   (cols-3,rows-3) you   (cols-2..cols-1,rows-2) desk   (cols-1,rows-1) plant
  */
 function layoutFor(v: View): Layout {
   const { cols, rows } = v;
@@ -217,6 +220,24 @@ function glow(
   ctx.restore();
 }
 
+/** Vertical seam on a right-hand face — wardrobe and cupboard doors. */
+function doorSeam(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  i: number,
+  j: number,
+  w: number,
+  d: number,
+  along: number,
+  from: number,
+  to: number,
+  colour: string
+): void {
+  for (let up = from; up < to; up++) {
+    faceDotSE(ctx, v, i, j, w, d, along, up, colour, 1);
+  }
+}
+
 /* ---------- scene ---------- */
 
 export interface SceneParams {
@@ -247,110 +268,138 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
 
   // ---- things on the walls
   if (tier === 0) {
-    const [bx, by] = wallAnchorNE(v, 1.2, v.wallH - 6);
+    const [bx, by] = wallPointNE(v, 1.4, v.wallH - 6);
     rect(ctx, bx, by - 12, 1, 12, "#332f2a");
     rect(ctx, bx - 2, by, 5, 4, night ? "#ffe9a8" : "#c9c2ac");
   } else {
     const win = night ? WINDOW_NIGHT : WINDOW_DAY;
-    const [wx, wy] = wallAnchorNE(v, v.cols - 2.6, v.wallH - 14);
-    drawOnWall(ctx, win, wx, wy, 1);
+    const at = v.cols - 2.8;
+    hangNE(ctx, v, CURTAIN, at - 0.45, v.wallH - 13);
+    hangNE(ctx, v, win, at, v.wallH - 14);
+    hangNE(ctx, v, CURTAIN, at + 1.5, v.wallH - 13);
   }
 
-  if (tier >= 1) {
-    const [dx, dy] = wallAnchorNW(v, v.rows - 1.5, v.wallH - 4);
-    drawOnWall(ctx, DOOR, dx - spriteWidth(DOOR), dy, -1);
-  }
-  if (owned.poster) {
-    const [px, py] = wallAnchorNW(v, 1.2, v.wallH - 18);
-    drawOnWall(ctx, POSTER, px - spriteWidth(POSTER), py, -1);
-  }
-  if (owned.art) {
-    const [ax, ay] = wallAnchorNE(v, 2.1, v.wallH - 16);
-    drawOnWall(ctx, ART, ax, ay, 1);
-  }
-  if (owned.tv) {
-    const [tx, ty] = wallAnchorNE(v, 0.8, v.wallH - 20);
-    drawOnWall(ctx, TV_WALL, tx, ty, 1);
-  }
+  if (tier >= 1) hangNW(ctx, v, DOOR, v.rows - 1.7, spriteHeight(DOOR));
+  if (owned.poster) hangNW(ctx, v, POSTER, 0.9, v.wallH - 18);
+  if (owned.art) hangNW(ctx, v, ART, v.rows - 2.8, v.wallH - 16);
+  if (owned.tv) hangNE(ctx, v, TV_WALL, 0.5, v.wallH - 20);
 
   // ---- rug
   if (owned.rug) {
     for (let j = 1; j < v.rows - 1; j++) {
       for (let i = 1; i < v.cols - 1; i++) {
-        tile(ctx, v, i, j, (i + j) % 2 === 0 ? "#8d5f9e" : "#764e88");
+        tile(ctx, v, i, j, (i + j) % 2 === 0 ? "#63768c" : "#54647a");
       }
     }
-    for (let i = 1; i < v.cols - 1; i++) tileEdge(ctx, v, i, v.rows - 2, "#5a3a6b");
   }
 
   // ---- furniture against the back walls, far to near
   if (owned.shelf) {
-    box(ctx, v, L.shelf[0], L.shelf[1], 1, 1, 30, {
+    const [i, j] = L.shelf;
+    box(ctx, v, i, j, 1, 1, 32, {
       top: "#8a5a34",
       left: "#5a3a20",
-      right: "#754a2b"
+      right: "#754a2b",
+      edge: EDGE
     });
-    drawOnTile(ctx, v, BOOKS, L.shelf[0], L.shelf[1], 0, -30);
-    drawOnTile(ctx, v, BOOKS, L.shelf[0], L.shelf[1], 0, -18);
+    // shelf edges, then books on the two upper ones
+    for (const up of [11, 21, 31]) {
+      faceLineSE(ctx, v, i, j, 1, 1, up, "#b07a48");
+      faceLineSW(ctx, v, i, j, 1, 1, up, "#4a2f19");
+    }
+    drawOnTile(ctx, v, BOOKS, i, j, 0, -32);
+    drawOnTile(ctx, v, BOOKS, i, j, 0, -22);
   }
 
   if (owned.sofa) {
-    box(ctx, v, L.sofa[0], L.sofa[1], 2, 1, 22, {
+    const [i, j] = L.sofa;
+    // backrest first, then the seat in front of it
+    box(ctx, v, i, j, 2, 1, 23, {
       top: "#4a8c80",
       left: "#255049",
-      right: "#2f6058"
+      right: "#2f6058",
+      edge: EDGE
     });
-    box(ctx, v, L.sofa[0], L.sofa[1], 2, 1, 11, {
+    box(ctx, v, i, j, 2, 1, 12, {
       top: "#3f7d72",
       left: "#255049",
-      right: "#2f6058"
+      right: "#2f6058",
+      edge: EDGE
     });
+    drawOnTile(ctx, v, CUSHION, i, j, -8, -12);
+    drawOnTile(ctx, v, CUSHION, i + 1, j, 8, -12);
   }
 
   if (tier >= 2) {
-    box(ctx, v, L.wardrobe[0], L.wardrobe[1], 1, 1, 42, {
+    const [i, j] = L.wardrobe;
+    box(ctx, v, i, j, 1, 1, 44, {
       top: "#a4693a",
       left: "#67401f",
-      right: "#87532a"
+      right: "#87532a",
+      edge: EDGE
     });
+    doorSeam(ctx, v, i, j, 1, 1, 8, 3, 42, "#5c3a1c");
+    faceLineSE(ctx, v, i, j, 1, 1, 42, "#c08a52");
+    faceDotSE(ctx, v, i, j, 1, 1, 6, 22, "#e0c58a", 2);
+    faceDotSE(ctx, v, i, j, 1, 1, 10, 22, "#e0c58a", 2);
   }
 
   // bed, or a mattress on the floor while you're at the bottom
   if (tier >= 2) {
-    box(ctx, v, L.bed[0], L.bed[1], 1, 2, 9, {
-      top: "#7a5ba6",
-      left: "#4a3670",
-      right: "#5d4383"
+    const [i, j] = L.bed;
+    box(ctx, v, i, j, 1, 2, 6, {
+      top: "#6b4a2c",
+      left: "#4a3119",
+      right: "#5b3d23",
+      edge: EDGE
     });
-    drawOnTile(ctx, v, PILLOW, L.bed[0], L.bed[1], 0, -9);
-    drawOnTile(ctx, v, BLANKET, L.bed[0], L.bed[1] + 1, 0, -16);
+    box(ctx, v, i, j, 1, 2, 11, {
+      top: "#e6e2d8",
+      left: "#b8b3a6",
+      right: "#cdc8bb",
+      edge: EDGE
+    });
+    // Resting on the mattress top (11px up), centred mid-tile.
+    drawOnTile(ctx, v, PILLOW, i, j, 0, -19);
+    drawOnTile(ctx, v, BLANKET, i, j + 1, 0, -19);
   } else {
-    box(ctx, v, L.bed[0], L.bed[1], 1, 2, 3, {
+    const [i, j] = L.bed;
+    box(ctx, v, i, j, 1, 2, 4, {
       top: "#8d8577",
       left: "#5d574c",
-      right: "#6e685b"
+      right: "#6e685b",
+      edge: EDGE
     });
-    drawOnTile(ctx, v, BLANKET, L.bed[0], L.bed[1] + 1, 0, -11);
+    drawOnTile(ctx, v, BLANKET, i, j + 1, 0, -12);
   }
 
   if (owned.aquarium) {
-    box(ctx, v, L.aquarium[0], L.aquarium[1], 1, 1, 14, {
+    const [i, j] = L.aquarium;
+    box(ctx, v, i, j, 1, 1, 14, {
       top: "#5a3a20",
       left: "#442c17",
-      right: "#4f331c"
+      right: "#4f331c",
+      edge: EDGE
     });
-    box(ctx, v, L.aquarium[0], L.aquarium[1], 1, 1, 27, {
+    box(ctx, v, i, j, 1, 1, 28, {
       top: "#7ec8e8",
       left: "#2f7ba8",
-      right: "#4fa8d8"
+      right: "#4fa8d8",
+      edge: EDGE
     });
+    // water line and a couple of fish, so it reads as a tank not a blue cube
+    faceLineSE(ctx, v, i, j, 1, 1, 24, "#b6e4f5");
+    faceLineSW(ctx, v, i, j, 1, 1, 24, "#8fd0ea");
+    faceDotSE(ctx, v, i, j, 1, 1, 5, 18, "#e8913f", 2);
+    faceDotSE(ctx, v, i, j, 1, 1, 11, 12, "#e8d24f", 2);
+    faceDotSW(ctx, v, i, j, 1, 9, 15, "#e06a5f", 2);
   }
 
   if (owned.server) drawOnTile(ctx, v, SERVER, L.server[0], L.server[1]);
   if (owned.plant) drawOnTile(ctx, v, PLANT, L.plant[0], L.plant[1]);
 
   // ---- chair, character, then the desk in front of them
-  if (owned.chair) drawOnTile(ctx, v, CHAIR_BACK, L.char[0], L.char[1], 0, -4);
+  if (owned.chair) drawOnTile(ctx, v, CHAIR_BACK, L.char[0], L.char[1], 0, -6);
 
   const outfit = OUTFITS[Math.max(0, Math.min(OUTFITS.length - 1, tier))];
   const bodySprite = recolour(CHAR, `fit${tier}`, outfit);
@@ -359,21 +408,28 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   const charDY = -6 + bob + (tired ? 2 : 0);
   drawOnTile(ctx, v, bodySprite, L.char[0], L.char[1], 0, charDY);
 
-  // Eyes sit on row 8 of the sprite; drop the lids over them.
+  // Eyes sit on row 9 of the sprite; drop the lids over them.
   if (!still && frame % 200 < 6) {
-    drawOnTile(ctx, v, CHAR_BLINK, L.char[0], L.char[1], 1, charDY - spriteHeight(CHAR) + 9);
+    drawOnTile(ctx, v, CHAR_BLINK, L.char[0], L.char[1], 1, charDY - spriteHeight(CHAR) + 10);
   }
 
-  // desk
-  box(ctx, v, L.desk[0], L.desk[1], L.deskW, 1, DESK_H, {
-    top: tier >= 2 ? "#9f6f42" : "#8a5a34",
-    left: "#523419",
-    right: "#684325"
-  });
+  // ---- desk, with a drawer front and two handles
+  {
+    const [i, j] = L.desk;
+    box(ctx, v, i, j, L.deskW, 1, DESK_H, {
+      top: tier >= 2 ? "#a5743f" : "#8a5a34",
+      left: "#4e3117",
+      right: "#68432a",
+      edge: EDGE
+    });
+    faceLineSW(ctx, v, i, j, L.deskW, 1, DESK_H - 3, "#3f2712");
+    // `along` counts 2px steps and the face is deskW * 8 steps long.
+    faceDotSW(ctx, v, i, j, 1, 5, DESK_H - 7, "#d9b477", 2);
+    faceDotSW(ctx, v, i, j, 1, 11, DESK_H - 7, "#d9b477", 2);
+  }
 
   // ---- on the desk. `-DESK_H - 8` lands things mid-tile on the desk top
   // instead of hanging off its front edge.
-  // The screen goes on the tile directly in front of you; clutter to the side.
   const midI = L.desk[0];
   const sideI = L.desk[0] + 1;
   const deskJ = L.desk[1];
@@ -390,12 +446,8 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
 
   if (owned.laptop) drawOnTile(ctx, v, LAPTOP_ISO, sideI, deskJ, 4, onDesk + 4);
 
-  // keyboard: a thin slab in front of the screen
-  box(ctx, v, midI, deskJ, 1, 1, 3, {
-    top: "#5c5f68",
-    left: "#383b42",
-    right: "#484b53"
-  }, DESK_H);
+  // keyboard lies flat in front of the screen
+  drawOnTile(ctx, v, KEYBOARD_ISO, midI, deskJ, 0, -DESK_H - 1);
 
   drawOnTile(ctx, v, MUG, sideI, deskJ, 8, onDesk + 8);
   if (owned.lamp) drawOnTile(ctx, v, LAMP, sideI, deskJ, -2, onDesk);
