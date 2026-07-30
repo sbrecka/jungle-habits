@@ -2,117 +2,287 @@
 
 import React from "react";
 
-export function BananaIcon({ size = 16 }: { size?: number }) {
+/* ---------- primitives ---------- */
+
+export function Sheet({
+  title,
+  subtitle,
+  onClose,
+  children
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <path
-        d="M 5 4 Q 4 14 12 18 Q 19 21 21 14 Q 20 18 13 16 Q 6 13 7 4 Z"
-        fill="#F5CE45"
-        stroke="#2F2013"
-        strokeWidth={1.8}
-        strokeLinejoin="round"
-      />
-      <path d="M 5.5 3.5 l 1.6 -1" stroke="#2F2013" strokeWidth={2} strokeLinecap="round" />
+    <div className="sheet-in absolute inset-0 z-40 flex flex-col bg-bg">
+      <header className="flex items-baseline gap-3 border-b border-line px-4 py-3">
+        <h2 className="font-display text-lg leading-none text-text">{title}</h2>
+        {subtitle && <span className="text-xs text-dim">{subtitle}</span>}
+        <button
+          onClick={onClose}
+          aria-label="Zavřít"
+          className="ml-auto grid h-8 w-8 place-items-center rounded border border-line text-dim active:scale-95"
+        >
+          <X />
+        </button>
+      </header>
+      <div className="thin-scroll flex-1 overflow-y-auto p-3 pb-24">{children}</div>
+    </div>
+  );
+}
+
+export function Panel({
+  children,
+  className = ""
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded border border-line bg-panel p-3 ${className}`}>{children}</div>
+  );
+}
+
+export function Btn({
+  children,
+  onClick,
+  variant = "default",
+  disabled,
+  className = ""
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: "default" | "primary" | "danger" | "ghost";
+  disabled?: boolean;
+  className?: string;
+}) {
+  const styles = {
+    default: "bg-panel2 border-line text-text",
+    primary: "bg-gold border-goldDark text-black font-semibold",
+    danger: "bg-danger border-dangerDark text-white",
+    ghost: "bg-transparent border-line text-dim"
+  }[variant];
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded border px-3 py-2 text-sm leading-none transition active:scale-95 disabled:opacity-40 disabled:active:scale-100 ${styles} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Segmented horizontal meter. */
+export function Bar({
+  value,
+  max,
+  colour,
+  height = 6
+}: {
+  value: number;
+  max: number;
+  colour: string;
+  height?: number;
+}) {
+  const pct = max <= 0 ? 0 : Math.max(0, Math.min(100, (value / max) * 100));
+  return (
+    <div
+      className="w-full overflow-hidden rounded-sm bg-black/40"
+      style={{ height }}
+      role="progressbar"
+      aria-valuenow={Math.round(pct)}
+    >
+      <div className="h-full transition-[width] duration-300" style={{ width: `${pct}%`, background: colour }} />
+    </div>
+  );
+}
+
+export function Chip({
+  children,
+  tone = "dim"
+}: {
+  children: React.ReactNode;
+  tone?: "dim" | "gold" | "green" | "warn" | "danger" | "blue";
+}) {
+  const tones = {
+    dim: "border-line text-dim",
+    gold: "border-gold/40 text-gold",
+    green: "border-green/40 text-green",
+    warn: "border-warn/40 text-warn",
+    danger: "border-danger/50 text-danger",
+    blue: "border-blue/40 text-blue"
+  }[tone];
+  return (
+    <span className={`rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${tones}`}>
+      {children}
+    </span>
+  );
+}
+
+export function EmptyState({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-2 py-8 text-center text-sm leading-relaxed text-dim">{children}</p>
+  );
+}
+
+/* ---------- icons: chunky, crisp-edged, pixel flavoured ---------- */
+
+const crisp = { shapeRendering: "crispEdges" as const };
+
+export function Coin({ size = 14 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={3} y={1} width={6} height={1} fill="#e0a53c" />
+      <rect x={2} y={2} width={8} height={1} fill="#f2c05a" />
+      <rect x={1} y={3} width={10} height={6} fill="#e0a53c" />
+      <rect x={2} y={9} width={8} height={1} fill="#c4882a" />
+      <rect x={3} y={10} width={6} height={1} fill="#a86f20" />
+      <rect x={5} y={3} width={2} height={6} fill="#fff0c0" />
     </svg>
   );
 }
 
-export function FlameIcon({ size = 16, lit = true }: { size?: number; lit?: boolean }) {
+export function Bolt({ size = 14 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <path
-        d="M 12 2 Q 18 9 16.5 15 Q 15.5 20 12 20 Q 8.5 20 7.5 15 Q 6 9 12 2 Z"
-        fill={lit ? "#F0883E" : "#9AA3AF"}
-        stroke="#2F2013"
-        strokeWidth={1.8}
-        strokeLinejoin="round"
-      />
-      <path d="M 12 9 Q 14.5 13 13 16.5 Q 12.5 18 12 18 Q 10 17.5 10.5 14 Q 11 11 12 9 Z" fill={lit ? "#F5CE45" : "#C6CCD4"} />
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={6} y={1} width={3} height={1} fill="#8fd35c" />
+      <rect x={5} y={2} width={3} height={1} fill="#8fd35c" />
+      <rect x={4} y={3} width={3} height={1} fill="#6aa84f" />
+      <rect x={3} y={4} width={5} height={1} fill="#6aa84f" />
+      <rect x={4} y={5} width={4} height={1} fill="#8fd35c" />
+      <rect x={5} y={6} width={3} height={1} fill="#6aa84f" />
+      <rect x={4} y={7} width={3} height={1} fill="#6aa84f" />
+      <rect x={3} y={8} width={3} height={1} fill="#8fd35c" />
+      <rect x={3} y={9} width={2} height={1} fill="#8fd35c" />
     </svg>
   );
 }
 
-export function ClockIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+export function Food({ size = 14 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
-      <circle cx={12} cy={12} r={9} fill="none" stroke="currentColor" strokeWidth={2} />
-      <path d="M 12 7 V 12 L 15.5 14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={2} y={3} width={8} height={1} fill="#d98d4a" />
+      <rect x={1} y={4} width={10} height={2} fill="#f0a862" />
+      <rect x={1} y={6} width={10} height={1} fill="#c97a38" />
+      <rect x={2} y={7} width={8} height={1} fill="#8a5a34" />
+      <rect x={3} y={8} width={6} height={1} fill="#5f3d22" />
     </svg>
   );
 }
 
-export function GearIcon({ size = 20 }: { size?: number }) {
+export function HomeIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <path
-        d="M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 0 0 12 8.5 M 12 2 L 13 5 L 15.8 5.8 L 18.4 4.4 L 19.9 6.6 L 18.2 9 L 19 11.7 L 22 13 L 21 15.6 L 17.9 15.3 L 16 17.5 L 16.4 20.6 L 13.8 21.6 L 12 19 L 10.2 21.6 L 7.6 20.6 L 8 17.5 L 6.1 15.3 L 3 15.6 L 2 13 L 5 11.7 L 5.8 9 L 4.1 6.6 L 5.6 4.4 L 8.2 5.8 L 11 5 Z"
-        fill="currentColor"
-        fillRule="evenodd"
-      />
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={5} y={1} width={2} height={1} fill="currentColor" />
+      <rect x={3} y={2} width={6} height={1} fill="currentColor" />
+      <rect x={2} y={3} width={8} height={1} fill="currentColor" />
+      <rect x={1} y={4} width={10} height={1} fill="currentColor" />
+      <rect x={2} y={5} width={8} height={5} fill="currentColor" />
+      <rect x={5} y={7} width={2} height={3} fill="#12121a" />
     </svg>
   );
 }
 
-export function PencilIcon({ size = 20 }: { size?: number }) {
+export function WorkIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <path d="M 4 20 L 5 15.5 L 15.5 5 L 19 8.5 L 8.5 19 Z" fill="currentColor" />
-      <path d="M 16.8 3.7 L 20.3 7.2 L 21.5 6 Q 22.5 5 21.5 4 L 20 2.5 Q 19 1.5 18 2.5 Z" fill="currentColor" />
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={1} y={2} width={10} height={6} fill="currentColor" />
+      <rect x={2} y={3} width={8} height={4} fill="#12121a" />
+      <rect x={4} y={8} width={4} height={1} fill="currentColor" />
+      <rect x={2} y={9} width={8} height={1} fill="currentColor" />
     </svg>
   );
 }
 
-export function CartIcon({ size = 20 }: { size?: number }) {
+export function HabitIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <path d="M 3 4 H 6 L 8.5 14.5 H 18.5 L 21 7 H 7" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={10} cy={19} r={1.8} fill="currentColor" />
-      <circle cx={17} cy={19} r={1.8} fill="currentColor" />
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={2} y={1} width={8} height={10} fill="currentColor" />
+      <rect x={3} y={3} width={2} height={1} fill="#12121a" />
+      <rect x={6} y={3} width={3} height={1} fill="#12121a" />
+      <rect x={3} y={6} width={2} height={1} fill="#12121a" />
+      <rect x={6} y={6} width={3} height={1} fill="#12121a" />
+      <rect x={3} y={9} width={2} height={1} fill="#12121a" />
     </svg>
   );
 }
 
-export function SoundIcon({ on, size = 18 }: { on: boolean; size?: number }) {
+export function CartIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <path d="M 4 9 H 8 L 13 4.5 V 19.5 L 8 15 H 4 Z" fill="currentColor" />
-      {on ? (
-        <path d="M 16 9 Q 18.5 12 16 15 M 18 6.5 Q 22 12 18 17.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-      ) : (
-        <path d="M 16 9.5 L 21 14.5 M 21 9.5 L 16 14.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-      )}
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={1} y={2} width={2} height={1} fill="currentColor" />
+      <rect x={3} y={3} width={8} height={1} fill="currentColor" />
+      <rect x={3} y={4} width={7} height={3} fill="currentColor" />
+      <rect x={3} y={7} width={6} height={1} fill="currentColor" />
+      <rect x={4} y={9} width={2} height={2} fill="currentColor" />
+      <rect x={7} y={9} width={2} height={2} fill="currentColor" />
     </svg>
   );
 }
 
-export function XIcon({ size = 16 }: { size?: number }) {
+export function Check({ size = 14 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <path d="M 6 6 L 18 18 M 18 6 L 6 18" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={1} y={6} width={2} height={2} fill="currentColor" />
+      <rect x={3} y={8} width={2} height={2} fill="currentColor" />
+      <rect x={5} y={6} width={2} height={2} fill="currentColor" />
+      <rect x={7} y={4} width={2} height={2} fill="currentColor" />
+      <rect x={9} y={2} width={2} height={2} fill="currentColor" />
     </svg>
   );
 }
 
-export function ChevronIcon({ dir = "left", size = 18 }: { dir?: "left" | "right" | "up" | "down"; size?: number }) {
-  const rot = { left: 0, up: 90, right: 180, down: 270 }[dir];
+export function X({ size = 12 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} style={{ transform: `rotate(${rot}deg)` }} aria-hidden>
-      <path d="M 15 5 L 8 12 L 15 19" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={2} y={2} width={2} height={2} fill="currentColor" />
+      <rect x={4} y={4} width={2} height={2} fill="currentColor" />
+      <rect x={6} y={6} width={2} height={2} fill="currentColor" />
+      <rect x={8} y={8} width={2} height={2} fill="currentColor" />
+      <rect x={8} y={2} width={2} height={2} fill="currentColor" />
+      <rect x={6} y={4} width={2} height={2} fill="currentColor" />
+      <rect x={4} y={6} width={2} height={2} fill="currentColor" />
+      <rect x={2} y={8} width={2} height={2} fill="currentColor" />
     </svg>
   );
 }
 
-export function MoonSunIcon({ night, size = 18 }: { night: boolean; size?: number }) {
+export function Plus({ size = 12 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={5} y={1} width={2} height={10} fill="currentColor" />
+      <rect x={1} y={5} width={10} height={2} fill="currentColor" />
+    </svg>
+  );
+}
+
+export function Star({ size = 12 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={5} y={1} width={2} height={10} fill="currentColor" />
+      <rect x={1} y={5} width={10} height={2} fill="currentColor" />
+      <rect x={3} y={3} width={6} height={6} fill="currentColor" />
+    </svg>
+  );
+}
+
+export function MoonSun({ night, size = 14 }: { night: boolean; size?: number }) {
   return night ? (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <path d="M 20 14 A 8.5 8.5 0 1 1 10 4 A 7 7 0 0 0 20 14 Z" fill="currentColor" />
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={3} y={1} width={6} height={10} fill="currentColor" />
+      <rect x={1} y={3} width={2} height={6} fill="currentColor" />
+      <rect x={5} y={0} width={7} height={7} fill="#12121a" />
     </svg>
   ) : (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden>
-      <circle cx={12} cy={12} r={5} fill="currentColor" />
-      <g stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-        <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-      </g>
+    <svg viewBox="0 0 12 12" width={size} height={size} {...crisp} aria-hidden>
+      <rect x={4} y={4} width={4} height={4} fill="currentColor" />
+      <rect x={5} y={1} width={2} height={2} fill="currentColor" />
+      <rect x={5} y={9} width={2} height={2} fill="currentColor" />
+      <rect x={1} y={5} width={2} height={2} fill="currentColor" />
+      <rect x={9} y={5} width={2} height={2} fill="currentColor" />
     </svg>
   );
 }

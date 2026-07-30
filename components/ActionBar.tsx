@@ -1,78 +1,57 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
-import { useJungle } from "@/lib/store";
+import { useGame } from "@/lib/store";
+import { CartIcon, HabitIcon, HomeIcon, WorkIcon } from "./ui";
 import { dateKey } from "@/lib/date";
-import { PencilIcon, CartIcon, ChevronIcon } from "./ui";
-import { MonkeyFace } from "./art/Monkeys";
 
-interface Props {
-  onFocus: () => void;
-  onEdit: () => void;
-  onShop: () => void;
-  onProgress: () => void;
-  editMode: boolean;
-}
+export type Tab = "work" | "habits" | "shop" | "home";
 
-export default function ActionBar({ onFocus, onEdit, onShop, onProgress, editMode }: Props) {
-  const checkIn = useJungle((s) => s.checkIn);
-  const lastCheckInDate = useJungle((s) => s.lastCheckInDate);
-  const checkedIn = lastCheckInDate === dateKey();
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "work", label: "Práce", icon: <WorkIcon size={16} /> },
+  { id: "habits", label: "Návyky", icon: <HabitIcon size={16} /> },
+  { id: "shop", label: "Obchod", icon: <CartIcon size={16} /> },
+  { id: "home", label: "Bydlení", icon: <HomeIcon size={16} /> }
+];
+
+export default function ActionBar({ onOpen }: { onOpen: (t: Tab) => void }) {
+  const tasks = useGame((s) => s.tasks);
+  const habits = useGame((s) => s.habits);
+  const food = useGame((s) => s.food);
+  const contract = useGame((s) => s.contract);
+
+  const today = dateKey();
+  const openTasks = tasks.filter((t) => !t.done).length;
+  const habitsLeft = habits.filter((h) => h.history[today] !== "done").length;
+
+  const badge: Record<Tab, number> = {
+    work: openTasks + (contract ? 0 : 0),
+    habits: habitsLeft,
+    shop: food <= 1 ? 1 : 0,
+    home: 0
+  };
 
   return (
-    <div className="absolute bottom-0 inset-x-0 z-30 p-4 pb-5 pointer-events-none">
-      {/* pull-up handle for Today's Progress */}
-      <div className="flex justify-center mb-2">
+    <nav className="grid grid-cols-4 gap-1 border-t border-line bg-panel px-2 py-2">
+      {TABS.map((t) => (
         <button
-          onClick={onProgress}
-          className="pointer-events-auto flex items-center gap-1 bg-navy/85 text-white/90 text-xs font-bold rounded-full px-4 py-1.5 shadow-card hover:bg-navy"
+          key={t.id}
+          onClick={() => onOpen(t.id)}
+          className="relative flex flex-col items-center gap-1 rounded border border-line bg-panel2 py-2 text-[11px] text-text active:scale-95"
         >
-          <ChevronIcon dir="up" size={13} /> Today&apos;s progress
+          <span className="text-dim">{t.icon}</span>
+          {t.label}
+          {badge[t.id] > 0 && (
+            <span
+              className={`absolute right-1 top-1 min-w-[15px] rounded-sm px-1 text-[9px] font-bold leading-[14px] ${
+                t.id === "shop" ? "bg-danger text-white" : "bg-gold text-black"
+              }`}
+            >
+              {t.id === "shop" ? "!" : badge[t.id]}
+            </span>
+          )}
         </button>
-      </div>
-
-      <div className="flex items-end justify-between gap-3 max-w-md mx-auto">
-        <button
-          onClick={onEdit}
-          className={`pointer-events-auto w-12 h-12 rounded-full grid place-items-center shadow-card border-2 border-ink/70 transition-colors ${
-            editMode ? "bg-banana text-ink" : "bg-white/95 text-ink hover:bg-white"
-          }`}
-          title="Rearrange decorations"
-        >
-          <PencilIcon />
-        </button>
-
-        <div className="flex flex-col items-center gap-2 flex-1">
-          <motion.button
-            whileTap={{ scale: 0.94 }}
-            onClick={checkIn}
-            className={`pointer-events-auto w-full max-w-[220px] rounded-full py-2.5 px-6 font-display text-xl tracking-wide border-2 border-ink/80 shadow-pill flex items-center justify-center gap-2 ${
-              checkedIn
-                ? "bg-coral/50 text-ink/60"
-                : "bg-coral text-ink hover:bg-coral-dark"
-            }`}
-          >
-            <MonkeyFace size={22} />
-            {checkedIn ? "CHECKED-IN ✓" : "CHECK-IN"}
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.94 }}
-            onClick={onFocus}
-            className="pointer-events-auto w-full max-w-[160px] rounded-full py-1.5 px-6 font-display text-lg bg-sky-pill text-ink border-2 border-ink/80 shadow-pill hover:brightness-105"
-          >
-            FOCUS
-          </motion.button>
-        </div>
-
-        <button
-          onClick={onShop}
-          className="pointer-events-auto w-12 h-12 rounded-full bg-white/95 text-ink grid place-items-center shadow-card border-2 border-ink/70 hover:bg-white"
-          title="Open shop"
-        >
-          <CartIcon />
-        </button>
-      </div>
-    </div>
+      ))}
+    </nav>
   );
 }

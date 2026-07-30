@@ -9,71 +9,89 @@ body {
 }
 
 body {
-  @apply bg-navy-deep text-ink antialiased font-sans;
+  @apply bg-bg text-text antialiased font-sans;
 }
 
-/* ---------- idle animations ---------- */
-
-.sway {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: sway 5s ease-in-out infinite;
+/* Keep the pixel scene crisp at every scale. */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
-@keyframes sway {
-  0%, 100% { transform: rotate(-1.6deg); }
-  50% { transform: rotate(1.6deg); }
+/* Numbers and headings sit on the pixel font; body text stays readable. */
+.font-display {
+  letter-spacing: 0.01em;
 }
 
-.flicker {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: flicker 0.9s ease-in-out infinite;
+/*
+ * Entrance animations are CSS keyframes, not JS: the *base* style is the
+ * visible one, so if animations are throttled (background tab) or disabled the
+ * panel is still on screen and usable instead of stuck off-canvas.
+ */
+/*
+ * No keyframe may contain a state that hides the element: a paused animation
+ * holds its `from` values, so "opacity: 0" or "translateY(100%)" would leave an
+ * invisible overlay swallowing taps. Every start state stays legible.
+ */
+@keyframes sheet-in {
+  from {
+    transform: translateY(14px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.sheet-in {
+  animation: sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes flicker {
-  0%, 100% { transform: scale(1) translateY(0); opacity: 1; }
-  35% { transform: scale(1.06, 0.94) translateY(1px); opacity: 0.92; }
-  70% { transform: scale(0.95, 1.07) translateY(-1px); opacity: 1; }
+@keyframes fade-in {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in 180ms ease-out;
 }
 
-.shimmer {
-  animation: shimmer 3.5s ease-in-out infinite;
+@keyframes pop-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.pop-in {
+  animation: pop-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes shimmer {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 0.55; }
+/* thin scrollbars inside sheets */
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
 }
 
-.bob {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: bob 4s ease-in-out infinite;
-}
-
-@keyframes bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2.5px); }
-}
-
-.monkey-eyes {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: blink 6s infinite;
-}
-
-@keyframes blink {
-  0%, 94%, 100% { transform: scaleY(1); }
-  96.5% { transform: scaleY(0.08); }
+/* stop iOS from zooming when focusing an input */
+input,
+textarea,
+select {
+  font-size: 16px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sway, .flicker, .shimmer, .bob, .monkey-eyes {
-    animation: none;
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
-
-/* thin scrollbars in sheets */
-.thin-scroll::-webkit-scrollbar { width: 6px; }
-.thin-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }

@@ -1,16 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AnimatePresence } from "framer-motion";
-import { useJungle } from "@/lib/store";
-import Island from "@/components/Island";
+import { useGame } from "@/lib/store";
+import { formatMoneyShort } from "@/lib/constants";
+import RoomView from "@/components/RoomView";
 import TopBar from "@/components/TopBar";
-import ActionBar from "@/components/ActionBar";
-import QuestsScreen from "@/components/QuestsScreen";
-import ProgressSheet from "@/components/ProgressSheet";
-import ShopModal from "@/components/ShopModal";
-import { FocusSetup, FocusOverlay } from "@/components/FocusMode";
-import { EditTray, Toast, Celebration } from "@/components/Overlays";
+import ActionBar, { Tab } from "@/components/ActionBar";
+import WorkScreen from "@/components/WorkScreen";
+import HabitsScreen from "@/components/HabitsScreen";
+import ShopScreen from "@/components/ShopScreen";
+import HomeScreen from "@/components/HomeScreen";
+import TodayPanel from "@/components/TodayPanel";
+import { DayReport, LevelUp, Millionaire, Toast, WarningStrip } from "@/components/Overlays";
 
 export default function Page() {
   const [mounted, setMounted] = useState(false);
@@ -18,8 +19,8 @@ export default function Page() {
 
   if (!mounted) {
     return (
-      <main className="h-dvh grid place-items-center bg-navy-deep">
-        <div className="font-display text-2xl text-white/70">Loading your island…</div>
+      <main className="grid h-dvh place-items-center bg-bg">
+        <p className="font-display text-lg text-dim">Nahrávám…</p>
       </main>
     );
   }
@@ -27,87 +28,54 @@ export default function Page() {
 }
 
 function App() {
-  const rollover = useJungle((s) => s.rollover);
-  const setToast = useJungle((s) => s.setToast);
-  const placeItem = useJungle((s) => s.placeItem);
-  const removePlaced = useJungle((s) => s.removePlaced);
-  const inventory = useJungle((s) => s.inventory);
-  const focus = useJungle((s) => s.focus);
+  const processDays = useGame((s) => s.processDays);
+  const contract = useGame((s) => s.contract);
+  const [tab, setTab] = useState<Tab | null>(null);
 
-  const [questsOpen, setQuestsOpen] = useState(false);
-  const [progressOpen, setProgressOpen] = useState(false);
-  const [shopOpen, setShopOpen] = useState(false);
-  const [focusSetup, setFocusSetup] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState(0);
-
-  // day rollover on mount + periodically
+  // Catch up on any days that passed while the app was closed.
   useEffect(() => {
-    rollover();
-    const t = setInterval(rollover, 30000);
+    processDays();
+    const t = setInterval(processDays, 60_000);
     return () => clearInterval(t);
-  }, [rollover]);
-
-  const handlePlace = (x: number, y: number) => {
-    if (!selectedItemId) return;
-    const ok = placeItem(selectedItemId, selectedVariant, x, y);
-    if (!ok) setToast("Can't place that there.");
-    else if ((inventory[selectedItemId] || 0) <= 1) setSelectedItemId(null);
-  };
+  }, [processDays]);
 
   return (
-    <main className="h-dvh bg-navy-deep flex justify-center">
-      <div className="relative w-full max-w-md h-full overflow-hidden bg-ocean">
-        {/* island */}
-        <div className="absolute inset-0">
-          <Island
-            editMode={editMode}
-            selectedItemId={selectedItemId}
-            selectedVariant={selectedVariant}
-            onPlace={handlePlace}
-            onRemove={removePlaced}
-          />
+    <main className="flex h-dvh justify-center bg-black">
+      <div className="relative flex h-full w-full max-w-md flex-col overflow-hidden bg-bg">
+        <TopBar />
+
+        {/* the room */}
+        <div className="thin-scroll flex flex-1 flex-col justify-center overflow-y-auto">
+          <RoomView />
+
+          {contract && (
+            <div className="mx-3 mt-2 rounded border border-gold/30 bg-panel px-2 py-1.5">
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="truncate text-dim">{contract.title}</span>
+                <span className="ml-auto shrink-0 text-gold">
+                  {contract.delivered}/{contract.units} ·{" "}
+                  {formatMoneyShort(contract.payout)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <TodayPanel onOpenWork={() => setTab("work")} />
         </div>
 
-        <TopBar onOpenQuests={() => setQuestsOpen(true)} />
+        <WarningStrip />
+        <ActionBar onOpen={setTab} />
 
-        {!editMode && (
-          <ActionBar
-            editMode={editMode}
-            onFocus={() => setFocusSetup(true)}
-            onEdit={() => setEditMode(true)}
-            onShop={() => setShopOpen(true)}
-            onProgress={() => setProgressOpen(true)}
-          />
-        )}
-
-        <AnimatePresence>
-          {editMode && (
-            <EditTray
-              key="edit-tray"
-              selectedItemId={selectedItemId}
-              selectedVariant={selectedVariant}
-              onSelect={(id, v) => {
-                setSelectedItemId(id);
-                setSelectedVariant(v);
-              }}
-              onDone={() => {
-                setEditMode(false);
-                setSelectedItemId(null);
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        {questsOpen && <QuestsScreen onClose={() => setQuestsOpen(false)} />}
-        {progressOpen && <ProgressSheet onClose={() => setProgressOpen(false)} />}
-        {shopOpen && <ShopModal onClose={() => setShopOpen(false)} />}
-        {focusSetup && !focus && <FocusSetup onClose={() => setFocusSetup(false)} />}
-        <FocusOverlay />
+        {/* screens */}
+        {tab === "work" && <WorkScreen onClose={() => setTab(null)} />}
+        {tab === "habits" && <HabitsScreen onClose={() => setTab(null)} />}
+        {tab === "shop" && <ShopScreen onClose={() => setTab(null)} />}
+        {tab === "home" && <HomeScreen onClose={() => setTab(null)} />}
 
         <Toast />
-        <Celebration />
+        <LevelUp />
+        <Millionaire />
+        <DayReport />
       </div>
     </main>
   );

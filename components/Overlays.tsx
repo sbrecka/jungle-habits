@@ -1,181 +1,179 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useJungle } from "@/lib/store";
-import { SHOP_ITEMS, CATEGORY_UNLOCKS, shopItem } from "@/lib/constants";
-import { SpritePreview } from "./art/Decorations";
-import { BananaIcon } from "./ui";
+import { useGame } from "@/lib/store";
+import { GameEvent } from "@/lib/types";
+import { formatMoney, housing } from "@/lib/constants";
+import { formatDayShort } from "@/lib/date";
+import { Btn, Panel } from "./ui";
 
-/* ---------- Edit-mode inventory tray ---------- */
-
-export function EditTray({
-  selectedItemId, selectedVariant, onSelect, onDone
-}: {
-  selectedItemId: string | null;
-  selectedVariant: number;
-  onSelect: (itemId: string | null, variant: number) => void;
-  onDone: () => void;
-}) {
-  const inventory = useJungle((s) => s.inventory);
-  const owned = SHOP_ITEMS.filter((i) => (inventory[i.id] || 0) > 0);
-  const sel = selectedItemId ? shopItem(selectedItemId) : null;
-
-  return (
-    <motion.div
-      initial={{ y: 160 }}
-      animate={{ y: 0 }}
-      exit={{ y: 160 }}
-      className="absolute bottom-0 inset-x-0 z-40 bg-navy/95 backdrop-blur rounded-t-3xl p-4 text-white"
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="font-display text-xl">Rearrange island</div>
-          <div className="text-xs text-white/55">
-            {selectedItemId
-              ? "Tap a highlighted tile to place. Tap a decoration to store it."
-              : "Pick an item below, or tap a decoration to store it."}
-          </div>
-        </div>
-        <button
-          onClick={onDone}
-          className="rounded-full px-5 py-2 text-sm font-extrabold bg-leaf text-white border-2 border-ink/60 shadow-pill"
-        >
-          Done
-        </button>
-      </div>
-
-      <div className="flex gap-2 mt-3 overflow-x-auto thin-scroll pb-1">
-        {owned.length === 0 && (
-          <div className="text-sm text-white/55 py-3">
-            Nothing in storage — buy decorations in the shop (cart button).
-          </div>
-        )}
-        {owned.map((item) => (
-          <button
-            key={item.id}
-            onClick={() =>
-              onSelect(selectedItemId === item.id ? null : item.id, 0)
-            }
-            className={`shrink-0 rounded-2xl p-1.5 bg-white/5 border-2 ${
-              selectedItemId === item.id ? "border-banana bg-white/15" : "border-white/10"
-            }`}
-          >
-            <SpritePreview itemId={item.id} variant={selectedItemId === item.id ? selectedVariant : 0} size={54} />
-            <div className="text-[10px] font-extrabold text-white/80">×{inventory[item.id]}</div>
-          </button>
-        ))}
-      </div>
-
-      {sel && sel.variants > 1 && (
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-xs font-bold text-white/60">Style:</span>
-          {Array.from({ length: sel.variants }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => onSelect(sel.id, i)}
-              className={`w-6 h-6 rounded-full text-[11px] font-extrabold border-2 ${
-                selectedVariant === i ? "bg-banana text-ink border-banana" : "bg-white/10 text-white/70 border-white/20"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-/* ---------- Toast ---------- */
+/*
+ * All entrance animation here is CSS. The visible state is the base style, so a
+ * throttled or disabled animation can never leave an invisible overlay sitting
+ * on top of the UI swallowing taps.
+ */
 
 export function Toast() {
-  const toast = useJungle((s) => s.toast);
-  const setToast = useJungle((s) => s.setToast);
+  const toast = useGame((s) => s.toast);
+  const setToast = useGame((s) => s.setToast);
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3500);
+    const t = setTimeout(() => setToast(null), 2600);
     return () => clearTimeout(t);
   }, [toast, setToast]);
 
+  if (!toast) return null;
+
   return (
-    <AnimatePresence>
-      {toast && (
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 24 }}
-          className="absolute bottom-28 inset-x-0 z-[60] flex justify-center px-6 pointer-events-none"
-        >
-          <div className="bg-ink text-white text-sm font-bold rounded-full px-5 py-2.5 shadow-card max-w-sm text-center">
-            {toast}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div className="pointer-events-none absolute bottom-24 left-1/2 z-50 w-[86%] -translate-x-1/2">
+      <div className="fade-in rounded border border-line bg-panel2/95 px-3 py-2 text-center text-sm text-text shadow-lg">
+        {toast}
+      </div>
+    </div>
   );
 }
 
-/* ---------- Level-up celebration ---------- */
+export function LevelUp() {
+  const level = useGame((s) => s.celebrationLevel);
+  const dismiss = useGame((s) => s.dismissCelebration);
 
-export function Celebration() {
-  const celebrationLevel = useJungle((s) => s.celebrationLevel);
-  const dismissCelebration = useJungle((s) => s.dismissCelebration);
-
-  const unlocked = celebrationLevel
-    ? CATEGORY_UNLOCKS.find((c) => c.unlock === celebrationLevel)
-    : null;
+  if (level === null) return null;
 
   return (
-    <AnimatePresence>
-      {celebrationLevel && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 z-[70] bg-ink/55 flex items-center justify-center px-6"
-          onClick={dismissCelebration}
-        >
-          {/* banana confetti */}
-          {Array.from({ length: 14 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute"
-              style={{ left: `${6 + (i * 89) % 90}%` }}
-              initial={{ y: "-12vh", rotate: 0, opacity: 1 }}
-              animate={{ y: "110vh", rotate: 340 + i * 25 }}
-              transition={{ duration: 2.4 + (i % 5) * 0.35, ease: "easeIn", repeat: Infinity, delay: (i % 7) * 0.22 }}
-            >
-              <BananaIcon size={i % 3 === 0 ? 30 : 20} />
-            </motion.div>
-          ))}
+    <button
+      onClick={dismiss}
+      className="fade-in absolute inset-0 z-50 grid place-items-center bg-black/70 p-6"
+    >
+      <div className="pop-in w-full max-w-xs rounded border border-gold/60 bg-panel p-5 text-center">
+        <p className="text-[11px] uppercase tracking-widest text-dim">Postup v kariéře</p>
+        <p className="mt-1 font-display text-4xl leading-none text-gold">LVL {level}</p>
+        <p className="mt-3 text-sm leading-relaxed text-text">
+          Každý úkol teď platí víc. Zkušenost se vyplácí.
+        </p>
+        <Btn variant="primary" className="mt-4 w-full">
+          Zpátky do práce
+        </Btn>
+      </div>
+    </button>
+  );
+}
 
-          <motion.div
-            initial={{ scale: 0.6, y: 24 }}
-            animate={{ scale: 1, y: 0 }}
-            transition={{ type: "spring", damping: 14, stiffness: 220 }}
-            className="bg-[#F6F2E7] rounded-3xl shadow-card p-6 text-center max-w-xs w-full relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="font-display text-5xl text-ink">Level {celebrationLevel}!</div>
-            <p className="text-sm text-ink/65 mt-2">
-              Your island grew — more tiles to decorate.
-            </p>
-            {unlocked && (
-              <div className="mt-3 bg-banana/30 border-2 border-banana rounded-2xl px-3 py-2 text-sm font-extrabold text-ink">
-                🎁 New shop category unlocked: {unlocked.name}
+export function Millionaire() {
+  const show = useGame((s) => s.showMillionaire);
+  const dismiss = useGame((s) => s.dismissMillionaire);
+
+  if (!show) return null;
+
+  return (
+    <button
+      onClick={dismiss}
+      className="fade-in absolute inset-0 z-50 grid place-items-center bg-black/80 p-6"
+    >
+      <div className="pop-in w-full max-w-xs rounded border border-gold bg-panel p-5 text-center">
+        <p className="font-display text-3xl leading-tight text-gold">Milion.</p>
+        <p className="mt-3 text-sm leading-relaxed text-text">
+          Začínal jsi ve sklepě s {formatMoney(600)} a nudlemi. Teď máš čistý majetek přes
+          milion korun. Každá koruna přišla z práce, kterou jsi reálně odvedl.
+        </p>
+        <Btn variant="primary" className="mt-4 w-full">
+          Pokračovat
+        </Btn>
+      </div>
+    </button>
+  );
+}
+
+/* ---------- what happened while you were gone ---------- */
+
+const KIND_STYLE: Record<string, { colour: string; label: string }> = {
+  rent: { colour: "text-warn", label: "Nájem" },
+  food: { colour: "text-dim", label: "Jídlo" },
+  starve: { colour: "text-danger", label: "Hlad" },
+  seized: { colour: "text-danger", label: "Prodáno" },
+  evict: { colour: "text-danger", label: "Vystěhování" },
+  contract: { colour: "text-danger", label: "Zakázka" },
+  info: { colour: "text-dim", label: "Info" }
+};
+
+export function DayReport() {
+  const report = useGame((s) => s.report);
+  const dismiss = useGame((s) => s.dismissReport);
+  const tier = useGame((s) => s.housingTier);
+
+  if (!report || report.length === 0) return null;
+
+  const bad = report.some((e) => e.kind === "evict" || e.kind === "seized");
+
+  return (
+    <div className="fade-in absolute inset-0 z-50 flex flex-col bg-black/80 p-4">
+      <div className="m-auto flex max-h-full w-full max-w-sm flex-col rounded border border-line bg-panel">
+        <div className="border-b border-line p-4">
+          <h2 className="font-display text-lg leading-tight text-text">
+            {bad ? "Zatímco jsi nepracoval…" : "Co se stalo mezitím"}
+          </h2>
+          <p className="mt-1 text-[11px] text-dim">
+            Svět běžel dál. Teď bydlíš v {housing(tier).name}.
+          </p>
+        </div>
+
+        <div className="thin-scroll flex-1 space-y-1.5 overflow-y-auto p-3">
+          {report.map((e: GameEvent, i) => {
+            const st = KIND_STYLE[e.kind] ?? KIND_STYLE.info;
+            return (
+              <div key={i} className="rounded border border-line/60 px-2 py-1.5">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide">
+                  <span className={st.colour}>{st.label}</span>
+                  <span className="ml-auto text-dim">{formatDayShort(e.day)}</span>
+                </div>
+                <p className="mt-0.5 text-[12px] leading-snug text-text">{e.text}</p>
               </div>
-            )}
-            <button
-              onClick={dismissCelebration}
-              className="mt-4 w-full rounded-full py-2.5 font-display text-xl bg-coral text-ink border-2 border-ink/80 shadow-pill"
-            >
-              WOOHOO!
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            );
+          })}
+        </div>
+
+        <div className="border-t border-line p-3">
+          <Btn variant="primary" onClick={dismiss} className="w-full">
+            Rozumím
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- persistent warnings under the room ---------- */
+
+export function WarningStrip() {
+  const food = useGame((s) => s.food);
+  const lateDays = useGame((s) => s.lateDays);
+  const energy = useGame((s) => s.energy);
+
+  const warnings: { text: string; tone: string }[] = [];
+  if (food <= 0)
+    warnings.push({ text: "Nemáš co jíst — každý den bez jídla bere energii.", tone: "danger" });
+  else if (food <= 2) warnings.push({ text: `Jídlo jen na ${food} dny.`, tone: "warn" });
+  if (lateDays > 0)
+    warnings.push({ text: "Nájem po splatnosti. Hrozí vystěhování.", tone: "danger" });
+  if (energy < 30 && food > 0)
+    warnings.push({ text: "Jsi vyčerpaný, práce vynáší málo. Odškrtni návyky.", tone: "warn" });
+
+  if (warnings.length === 0) return null;
+
+  return (
+    <div className="space-y-1 px-3 py-2">
+      {warnings.map((w, i) => (
+        <Panel
+          key={i}
+          className={`!py-1.5 ${
+            w.tone === "danger" ? "border-danger/50 bg-danger/10" : "border-warn/40 bg-warn/10"
+          }`}
+        >
+          <p className={`text-[11px] ${w.tone === "danger" ? "text-danger" : "text-warn"}`}>
+            {w.text}
+          </p>
+        </Panel>
+      ))}
+    </div>
   );
 }

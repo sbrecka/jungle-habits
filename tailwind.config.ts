@@ -5,23 +5,36 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ocean: { light: "#8CC3E3", DEFAULT: "#5FA8D3", deep: "#3E86B5" },
-        sand: "#EBD9A6",
-        leaf: { light: "#9CC661", DEFAULT: "#79AC48", dark: "#5D8F38" },
-        navy: { DEFAULT: "#1B2A41", deep: "#131F31", card: "#22334E" },
-        coral: { DEFAULT: "#F4877F", dark: "#E06A62" },
-        sky: { pill: "#A9D9EE" },
-        banana: "#F5CE45",
-        flame: "#F0883E",
-        ink: "#2F2013"
+        bg: "#12121a",
+        panel: "#1c1c26",
+        panel2: "#262632",
+        line: "#33333f",
+        text: "#e8e6ef",
+        dim: "#9a97a8",
+        gold: "#e0a53c",
+        goldDark: "#a86f20",
+        green: "#6aa84f",
+        warn: "#d9822b",
+        danger: "#c8524f",
+        dangerDark: "#8d3634",
+        blue: "#6fb1d9"
       },
       fontFamily: {
-        display: ['"Patrick Hand"', '"Comic Sans MS"', '"Segoe Print"', 'cursive'],
-        sans: ['Nunito', 'ui-rounded', '"Segoe UI"', 'system-ui', 'sans-serif']
-      },
-      boxShadow: {
-        card: "0 4px 14px rgba(19, 31, 49, 0.10)",
-        pill: "0 3px 0 rgba(47, 32, 19, 0.35)"
+        display: [
+          '"Pixelify Sans"',
+          'ui-monospace',
+          '"SF Mono"',
+          'Menlo',
+          'monospace'
+        ],
+        sans: [
+          'system-ui',
+          '-apple-system',
+          '"Segoe UI"',
+          'Roboto',
+          '"Helvetica Neue"',
+          'sans-serif'
+        ]
       }
     }
   },

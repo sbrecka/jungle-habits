@@ -1,149 +1,109 @@
 "use client";
 
-import React, { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useJungle, resetAllData } from "@/lib/store";
-import { xpToNext } from "@/lib/constants";
-import { BananaIcon, FlameIcon, GearIcon, SoundIcon, MoonSunIcon, ChevronIcon } from "./ui";
-import { MonkeyFace } from "./art/Monkeys";
+import React from "react";
+import { useGame, netWorth } from "@/lib/store";
+import {
+  ENERGY_MAX,
+  RENT_GRACE_DAYS,
+  energyLabel,
+  formatMoney,
+  formatMoneyShort,
+  housing,
+  xpToNext
+} from "@/lib/constants";
+import { dateKey, daysBetween } from "@/lib/date";
+import { Bar, Bolt, Coin, Food, MoonSun } from "./ui";
 
-export default function TopBar({ onOpenQuests }: { onOpenQuests: () => void }) {
-  const { level, currentXP, streak, bananaBalance, ledger, sound, night, setSound, setNight } =
-    useJungle();
-  const [ledgerOpen, setLedgerOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const pct = Math.min(100, Math.round((currentXP / xpToNext(level)) * 100));
+export default function TopBar() {
+  const money = useGame((s) => s.money);
+  const level = useGame((s) => s.level);
+  const xp = useGame((s) => s.xp);
+  const energy = useGame((s) => s.energy);
+  const food = useGame((s) => s.food);
+  const tier = useGame((s) => s.housingTier);
+  const rentDue = useGame((s) => s.rentDue);
+  const lateDays = useGame((s) => s.lateDays);
+  const night = useGame((s) => s.night);
+  const setNight = useGame((s) => s.setNight);
+  const worth = useGame((s) => netWorth(s));
+
+  const rentIn = daysBetween(dateKey(), rentDue);
+  const rent = housing(tier).rent;
+
+  const rentTone =
+    lateDays > 0 ? "text-danger" : rentIn <= 1 ? "text-warn" : "text-dim";
+  const rentText =
+    lateDays > 0
+      ? `PO SPLATNOSTI ${lateDays}/${RENT_GRACE_DAYS}`
+      : rentIn <= 0
+        ? "nájem dnes"
+        : `nájem za ${rentIn} d`;
 
   return (
-    <div className="absolute top-0 inset-x-0 z-30 p-3 pointer-events-none">
-      <div className="flex items-start justify-between gap-2">
-        {/* stat cluster */}
-        <div className="pointer-events-auto flex items-center gap-1.5 bg-navy/90 backdrop-blur rounded-2xl px-3 py-2 text-white shadow-card">
-          <div className="flex items-center gap-1.5 pr-2 border-r border-white/15">
-            <MonkeyFace size={20} />
-            <div>
-              <div className="text-xs font-extrabold leading-none">Lvl {level}</div>
-              <div className="mt-1 h-1.5 w-12 rounded-full bg-white/20 overflow-hidden">
-                <div className="h-full rounded-full bg-leaf-light transition-all" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 px-2 border-r border-white/15">
-            <FlameIcon size={16} lit={streak > 0} />
-            <span className="text-sm font-extrabold">{streak}</span>
-          </div>
-          <button
-            className="flex items-center gap-1 pl-1 pr-0.5 hover:opacity-80"
-            onClick={() => setLedgerOpen((v) => !v)}
-            aria-expanded={ledgerOpen}
-          >
-            <BananaIcon size={16} />
-            <span className="text-sm font-extrabold tabular-nums">
-              {bananaBalance.toLocaleString()}
-            </span>
-            <ChevronIcon dir={ledgerOpen ? "up" : "down"} size={13} />
-          </button>
-        </div>
+    <div className="border-b border-line bg-panel px-3 py-2">
+      <div className="flex items-center gap-2">
+        <Coin size={16} />
+        <span className="font-display text-xl leading-none text-gold">{formatMoney(money)}</span>
 
-        {/* right controls */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          <button
-            className="w-9 h-9 rounded-full bg-navy/90 text-white grid place-items-center shadow-card hover:bg-navy"
-            onClick={() => setNight(!night)}
-            title="Toggle day / night"
-          >
-            <MoonSunIcon night={night} />
-          </button>
-          <button
-            className="w-9 h-9 rounded-full bg-navy/90 text-white grid place-items-center shadow-card hover:bg-navy"
-            onClick={() => setSound(!sound)}
-            title={sound ? "Mute" : "Unmute"}
-          >
-            <SoundIcon on={sound} />
-          </button>
-          <button
-            className="w-9 h-9 rounded-full bg-navy/90 text-white grid place-items-center shadow-card hover:bg-navy"
-            onClick={() => setSettingsOpen((v) => !v)}
-            title="Settings"
-          >
-            <GearIcon />
-          </button>
-        </div>
-      </div>
-
-      {/* Add tasks pill */}
-      <div className="flex justify-center mt-2">
         <button
-          onClick={onOpenQuests}
-          className="pointer-events-auto bg-navy/90 text-white text-sm font-bold rounded-full px-4 py-1.5 shadow-card hover:bg-navy flex items-center gap-1.5"
+          onClick={() => setNight(!night)}
+          aria-label={night ? "Rozsvítit den" : "Zhasnout na noc"}
+          className="ml-auto grid h-7 w-7 place-items-center rounded border border-line text-dim active:scale-95"
         >
-          <span className="text-base leading-none">☰</span> Add tasks
+          <MoonSun night={night} />
         </button>
       </div>
 
-      {/* banana ledger dropdown */}
-      <AnimatePresence>
-        {ledgerOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="pointer-events-auto absolute left-3 top-16 w-64 bg-navy text-white rounded-2xl shadow-card p-3 z-40"
-          >
-            <div className="text-xs font-extrabold uppercase tracking-wide text-white/60 mb-2">
-              Banana ledger
-            </div>
-            <div className="max-h-52 overflow-y-auto thin-scroll space-y-1.5">
-              {ledger.length === 0 && (
-                <div className="text-sm text-white/60">Complete a habit to earn your first bananas.</div>
-              )}
-              {ledger.map((e, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <span className="truncate pr-2 text-white/85">{e.reason}</span>
-                  <span
-                    className={`font-extrabold tabular-nums ${e.delta >= 0 ? "text-leaf-light" : "text-coral"}`}
-                  >
-                    {e.delta >= 0 ? "+" : ""}
-                    {e.delta}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="mt-1 flex items-center gap-2 text-[11px] text-dim">
+        <span>
+          Majetek <span className="text-text">{formatMoneyShort(worth)}</span>
+        </span>
+        <span className="text-line">•</span>
+        <span className="truncate">{housing(tier).name}</span>
+        <span className={`ml-auto shrink-0 font-medium ${rentTone}`}>
+          {rentText} · {formatMoneyShort(rent)}
+        </span>
+      </div>
 
-      {/* settings popover */}
-      <AnimatePresence>
-        {settingsOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="pointer-events-auto absolute right-3 top-16 w-60 bg-navy text-white rounded-2xl shadow-card p-3 z-40"
-          >
-            <div className="text-xs font-extrabold uppercase tracking-wide text-white/60 mb-2">
-              Settings
-            </div>
-            <label className="flex items-center justify-between py-1.5 text-sm">
-              Sound effects
-              <input type="checkbox" checked={sound} onChange={(e) => setSound(e.target.checked)} className="accent-coral w-4 h-4" />
-            </label>
-            <label className="flex items-center justify-between py-1.5 text-sm">
-              Night theme
-              <input type="checkbox" checked={night} onChange={(e) => setNight(e.target.checked)} className="accent-coral w-4 h-4" />
-            </label>
-            <button
-              onClick={() => {
-                if (confirm("Reset all progress and restore the demo data?")) resetAllData();
-              }}
-              className="mt-2 w-full text-sm font-bold text-coral bg-white/5 hover:bg-white/10 rounded-xl py-2"
-            >
-              Reset all data
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="mt-2 flex items-center gap-3">
+        {/* career level */}
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="shrink-0 rounded border border-blue/40 px-1 py-0.5 text-[10px] text-blue">
+            LVL {level}
+          </span>
+          <div className="min-w-0 flex-1">
+            <Bar value={xp} max={xpToNext(level)} colour="#6fb1d9" height={5} />
+          </div>
+        </div>
+
+        {/* energy */}
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <Bolt />
+          <div className="min-w-0 flex-1">
+            <Bar
+              value={energy}
+              max={ENERGY_MAX}
+              colour={energy >= 55 ? "#6aa84f" : energy >= 30 ? "#d9822b" : "#c8524f"}
+              height={5}
+            />
+          </div>
+        </div>
+
+        {/* food stock */}
+        <div
+          className={`flex shrink-0 items-center gap-1 text-[11px] ${
+            food <= 0 ? "text-danger" : food <= 2 ? "text-warn" : "text-dim"
+          }`}
+          title="Zásoby jídla ve dnech"
+        >
+          <Food />
+          {food} d
+        </div>
+      </div>
+
+      <div className="mt-1 text-[10px] uppercase tracking-wide text-dim">
+        {energyLabel(energy)}
+      </div>
     </div>
   );
 }

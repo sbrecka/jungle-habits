@@ -1,34 +1,49 @@
-# 🐒 Jungle Habits
+# Grind — od nuly k milionu
 
-A gamified habit tracker where your good habits grow a cozy monkey island. Inspired by idle-island apps like *Monke* — built with Next.js 14, TypeScript, Tailwind CSS, Framer Motion and Zustand. **No backend, no accounts, no API keys** — everything lives in your browser's localStorage.
+Izometrická pixel-art hra, ve které tvoje kopie sedí u počítače. Vydělává jen
+tím, co reálně odpracuješ ty: zapíšeš si úkoly, odškrtneš je, a z těch peněz
+platíš jídlo a nájem. Co zbyde, jde do vybavení, nábytku a lepšího bydlení —
+od sklepního kutlochu až po vilu u moře.
 
-## Run it
+Postaveno na Next.js 14 (App Router), zustand s ukládáním do `localStorage`
+a vlastním pixel/izometrickém rendereru nad `<canvas>`.
+
+## Jak se to hraje
+
+- **Úkoly** (`Práce`) jsou tvoje skutečná práce. Malý / střední / velký úkol
+  platí různě. Výplata se násobí kariérní úrovní, vybavením a energií.
+- **Zakázky** mají termín a velkou odměnu. Každý hotový úkol na ní odvede 1–3
+  díly. Nedodržený termín stojí reputaci, reputace odemyká větší zakázky.
+- **Návyky** (`Návyky`) nedávají peníze přímo — dávají energii, a ta násobí
+  každou výplatu. Vyčerpaný člověk vydělá zlomek toho, co odpočatý.
+- **Jídlo a nájem** se platí samy, v čase. Nájem každých 7 dní.
+- **Tvrdá pravidla:** dva dny po splatnosti nájmu následuje vystěhování o
+  úroveň níž a přijdeš o věci, které se do menšího nevejdou. Tři dny bez jídla
+  a musíš něco prodat, abys měl co jíst.
+- **Cíl:** čistý majetek jeden milion.
+
+Dny se dopočítávají i když je appka zavřená — po návratu dostaneš přehled, co
+se mezitím stalo. Delší absence je zastropovaná: nikdy nepřijdeš o víc než
+jedno vystěhování a tři věci.
+
+## Vývoj
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then open http://localhost:3000. Works offline after install (the hand-drawn Google font gracefully falls back to system fonts without internet).
+## Struktura
 
-## What's inside
+| Cesta | Co v tom je |
+| --- | --- |
+| `lib/store.ts` | Celý stav a pravidla hry včetně dopočítávání dnů |
+| `lib/constants.ts` | Ekonomika — ceny, výplaty, bydlení, katalog obchodu |
+| `lib/pixel.ts` | Pixel-art engine: sprity jako mřížka znaků + paleta |
+| `lib/iso.ts` | Izometrické primitivy (dlaždice, kvádry, stěny) |
+| `lib/isoSprites.ts` | Sprity postavy, obrazovek a věcí na zdech |
+| `lib/isoScene.ts` | Skládání pokoje — paleta a rozvržení podle úrovně bydlení |
+| `components/` | UI: pokoj, horní lišta, obrazovky práce / návyků / obchodu / bydlení |
 
-- **Island home** — an isometric SVG island with palm sway, campfire flicker, water shimmer, blinking monkeys, a snoozing hammock monkey, and glowing torches in the night theme (moon button, top right). The island's landmass grows as you level up.
-- **CHECK-IN** — the big coral pill. Checking in daily builds your 🔥 streak; streaks of 3+ add bonus bananas. Miss a day and the streak resets (with a toast).
-- **Quests & Goals** ("☰ Add tasks") — habit cards with streaks, streak-bonus tags, minimum targets, identity statements, banana rewards, 7-day dot history, To-Dos/Done/Skipped tabs, day-by-day navigation, and a form to add your own quests. Goals tab tracks long-term goals with progress bars (+50 🍌 on completion).
-- **Today's progress** (pull-up pill) — habits done, minutes focused, bananas earned today; the **Daily Challenge** card with a live countdown to midnight, reroll ("Change"), dismiss, and an early-bird bonus before 6pm; plus a quick one-off **Tasks** checklist (+2 🍌 each).
-- **FOCUS** — pick 5/15/25/45 minutes, and Monke locks in over a darkened island with a big countdown. Finish for 1 🍌/minute + XP; the coral STOP needs a confirming second tap. The timer survives page reloads.
-- **Shop** (cart button) — decorations across Trees, Small Decorations, Structures, Boats and Wildlife. Categories unlock as you level up (with a NEW badge); buying deducts bananas and adds the item to storage.
-- **Edit mode** (pencil) — pick items from storage, tap highlighted tiles to place them (boats go on water!), tap placed decorations to store them again.
-- **XP & levels** — habits, tasks, challenges and focus all grant XP. Level-ups trigger a banana-confetti celebration and unlock shop categories.
-- **Banana ledger** — tap your banana balance to see where every banana came from (or went).
-
-## Demo data & reset
-
-The app seeds a level-3 island with habits, streak history, goals, tasks and placed decorations so every screen has life immediately. To start fresh: ⚙️ Settings → **Reset all data** (or clear the `jungle-habits-v1` localStorage key).
-
-## Notes
-
-- State schema is versioned under one localStorage key (`jungle-habits-v1`).
-- Day rollover happens automatically (checked every 30s): stats reset, a new daily challenge appears, and missed check-ins break the streak.
-- All art is hand-authored inline SVG; animations respect `prefers-reduced-motion`.
+Postup se ukládá lokálně v prohlížeči pod klíčem `grind-v1`. `Bydlení →
+Začít znovu od nuly` ho smaže.

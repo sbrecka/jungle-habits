@@ -4,22 +4,42 @@ export function dateKey(d: Date = new Date()): string {
   ).padStart(2, "0")}`;
 }
 
+/** Parses a key as a *local* date — avoids the UTC shift of new Date("2026-07-30"). */
+export function parseKey(k: string): Date {
+  const [y, m, d] = k.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
 export function addDays(n: number, from: Date = new Date()): Date {
   const d = new Date(from);
   d.setDate(d.getDate() + n);
   return d;
 }
 
+export function keyPlusDays(k: string, n: number): string {
+  return dateKey(addDays(n, parseKey(k)));
+}
+
 export function keyDaysAgo(n: number): string {
   return dateKey(addDays(-n));
 }
 
-export function formatHeader(d: Date): string {
-  return d.toLocaleDateString("en-US", {
+/** Whole days from key `a` to key `b` (negative when b is earlier). */
+export function daysBetween(a: string, b: string): number {
+  const ms = parseKey(b).getTime() - parseKey(a).getTime();
+  return Math.round(ms / 86_400_000);
+}
+
+export function formatDay(k: string): string {
+  return parseKey(k).toLocaleDateString("cs-CZ", {
     weekday: "long",
-    month: "short",
-    day: "numeric"
+    day: "numeric",
+    month: "long"
   });
+}
+
+export function formatDayShort(k: string): string {
+  return parseKey(k).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric" });
 }
 
 export function msToMidnight(now: Date = new Date()): number {
@@ -28,24 +48,7 @@ export function msToMidnight(now: Date = new Date()): number {
   return m.getTime() - now.getTime();
 }
 
-export function fmtCountdown(ms: number): string {
-  if (ms < 0) ms = 0;
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return `${h}h ${m}m ${sec}s`;
-}
-
-export function fmtTimer(ms: number): string {
-  if (ms < 0) ms = 0;
-  const s = Math.ceil(ms / 1000);
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-}
-
-/** Streak of consecutive "done" days ending today (or yesterday if today isn't done yet). */
+/** Consecutive "done" days ending today (or yesterday, if today isn't done yet). */
 export function habitStreak(history: Record<string, string>, today = new Date()): number {
   let start = 0;
   if (history[dateKey(today)] !== "done") start = 1;

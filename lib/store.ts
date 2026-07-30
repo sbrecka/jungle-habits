@@ -3,436 +3,704 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import {
-  Habit, Goal, Task, Challenge, PlacedItem, LedgerEntry, FocusSession, DayStatus
+  Contract,
+  ContractOffer,
+  GameEvent,
+  Habit,
+  LedgerEntry,
+  ShopItem,
+  TaskSize,
+  WorkTask
 } from "./types";
 import {
-  xpToNext, CHALLENGE_POOL, CHECKIN_REWARD, STREAK_BONUS_MIN, STREAK_BONUS_BANANAS,
-  TASK_REWARD, CHALLENGE_EARLY_BONUS, shopItem, isLand, categoryUnlockLevel
+  BASE_PAYOUT,
+  CLIENT_NAMES,
+  CONTRACT_TIERS,
+  CONTRACT_TITLES,
+  ENERGY_DAILY_DRAIN,
+  ENERGY_MAX,
+  HOUSING,
+  MAX_CATCHUP_DAYS,
+  MAX_EVICTIONS_PER_CATCHUP,
+  MAX_SEIZURES_PER_CATCHUP,
+  MILLION_GOAL,
+  REP_ON_DELIVER,
+  REP_ON_FAIL,
+  RENT_GRACE_DAYS,
+  RENT_PERIOD_DAYS,
+  START_ENERGY,
+  START_FOOD,
+  START_MONEY,
+  STARVE_ENERGY,
+  STARVE_SEIZE_DAYS,
+  TASK_UNITS,
+  VEHICLE_ORDER,
+  XP_PER_HABIT,
+  XP_PER_TASK,
+  careerMult,
+  energyMult,
+  formatMoney,
+  housing,
+  seedHabits,
+  shopItem,
+  xpToNext
 } from "./constants";
-import { dateKey, keyDaysAgo, addDays, habitStreak } from "./date";
+import { dateKey, daysBetween, keyPlusDays } from "./date";
 
 let idCounter = 0;
 function uid(prefix = "id"): string {
   idCounter += 1;
-  return `${prefix}-${Date.now().toString(36)}-${idCounter}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+  return `${prefix}-${Date.now().toString(36)}-${idCounter}`;
 }
 
-function randomChallenge(excludeKey?: string): Challenge {
-  const pool = CHALLENGE_POOL.filter((c) => c.key !== excludeKey);
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-  return { ...pick, state: "pending", date: dateKey() };
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
-/* ---------- Seed data ---------- */
+/* ---------- derived values (pure, reusable in components) ---------- */
 
-function seedHistory(doneDaysAgo: number[], skippedDaysAgo: number[] = []): Record<string, DayStatus> {
-  const h: Record<string, DayStatus> = {};
-  doneDaysAgo.forEach((n) => (h[keyDaysAgo(n)] = "done"));
-  skippedDaysAgo.forEach((n) => (h[keyDaysAgo(n)] = "skipped"));
-  return h;
+export type Owned = Record<string, boolean>;
+
+/** Product of every gear bonus you own. */
+export function gearMult(owned: Owned): number {
+  let m = 1;
+  for (const id of Object.keys(owned)) {
+    if (!owned[id]) continue;
+    const it = shopItem(id);
+    if (it?.incomeMult) m += it.incomeMult;
+  }
+  return m;
 }
 
-function seedHabits(): Habit[] {
-  return [
-    {
-      id: "habit-checkin",
-      title: "Daily Check-in",
-      minTarget: "Open the app and check in",
-      identity: "I show up every day",
-      bananaReward: CHECKIN_REWARD,
-      color: "#F4877F",
-      icon: "checkin",
-      isCheckIn: true,
-      history: seedHistory([1, 2, 3])
-    },
-    {
-      id: "habit-gym",
-      title: "Gym session",
-      minTarget: "10 minutes of movement",
-      identity: "I'm an athlete",
-      bananaReward: 15,
-      color: "#79AC48",
-      icon: "gym",
-      history: seedHistory([1, 3, 4], [2])
-    },
-    {
-      id: "habit-flashcards",
-      title: "Review flashcards",
-      minTarget: "Review 10 cards",
-      identity: "I have an excellent memory",
-      bananaReward: 10,
-      color: "#5FA8D3",
-      icon: "read",
-      history: seedHistory([1, 2])
-    },
-    {
-      id: "habit-water",
-      title: "Drink water",
-      minTarget: "6 glasses",
-      identity: "I take care of my body",
-      bananaReward: 5,
-      color: "#F5CE45",
-      icon: "drink",
-      history: seedHistory([1, 2, 3, 4, 5])
-    }
-  ];
+export function comfortTotal(owned: Owned): number {
+  let c = 0;
+  for (const id of Object.keys(owned)) {
+    if (!owned[id]) continue;
+    const it = shopItem(id);
+    if (it?.comfort) c += it.comfort;
+  }
+  return c;
 }
 
-function seedGoals(): Goal[] {
-  return [
-    { id: "goal-1", title: "Read 12 books this year", note: "One per month keeps the brain fresh", progress: 40, color: "#B48CD9" },
-    { id: "goal-2", title: "Run a 10k", note: "Training three times a week", progress: 25, color: "#F4877F" }
-  ];
+/** Comfort speeds recovery, but can't fully cancel the daily drain forever. */
+export function comfortRecovery(owned: Owned): number {
+  return Math.min(12, comfortTotal(owned) * 1.5);
 }
 
-function seedTasks(): Task[] {
-  return [
-    { id: "task-1", title: "Call Mum", color: "#F4877F", done: false },
-    { id: "task-2", title: "Water the plants", color: "#79AC48", done: false },
-    { id: "task-3", title: "Do my laundry", color: "#F5CE45", done: false }
-  ];
+export function ownedValue(owned: Owned): number {
+  let v = 0;
+  for (const id of Object.keys(owned)) {
+    if (!owned[id]) continue;
+    const it = shopItem(id);
+    if (it) v += it.price * 0.7;
+  }
+  return v;
 }
 
-function seedPlaced(): PlacedItem[] {
-  return [
-    { id: "pl-campfire", itemId: "campfire", variant: 0, x: 0, y: 0 },
-    { id: "pl-palm1", itemId: "palm", variant: 0, x: 2, y: -2 },
-    { id: "pl-palm2", itemId: "palm", variant: 1, x: -3, y: 1 },
-    { id: "pl-banana1", itemId: "banana-tree", variant: 0, x: 1, y: 2 },
-    { id: "pl-hut", itemId: "hut", variant: 0, x: -1, y: -3 },
-    { id: "pl-grass1", itemId: "grass", variant: 0, x: 3, y: 0 },
-    { id: "pl-grass2", itemId: "grass", variant: 2, x: -2, y: -1 },
-    { id: "pl-torch", itemId: "torch", variant: 0, x: 1, y: -1 },
-    { id: "pl-hammock", itemId: "hammock", variant: 0, x: -1, y: 3 }
-  ];
+export function bestVehicle(owned: Owned): ShopItem | undefined {
+  for (let i = VEHICLE_ORDER.length - 1; i >= 0; i--) {
+    if (owned[VEHICLE_ORDER[i]]) return shopItem(VEHICLE_ORDER[i]);
+  }
+  return undefined;
 }
 
-function seedLedger(): LedgerEntry[] {
-  const now = Date.now();
-  return [
-    { ts: now - 86400000 * 2, delta: 15, reason: "Gym session" },
-    { ts: now - 86400000, delta: 5, reason: "Daily check-in" },
-    { ts: now - 86400000, delta: 20, reason: "Daily challenge" },
-    { ts: now - 3600000 * 5, delta: -30, reason: "Shop: Grass Tuft" }
-  ];
+/** The single number that says how far you've come. */
+export function netWorth(s: Pick<GameState, "money" | "owned" | "housingTier">): number {
+  return Math.round(s.money + ownedValue(s.owned) + housing(s.housingTier).price * 0.9);
 }
 
-/* ---------- Store ---------- */
+export function taskPayout(
+  s: Pick<GameState, "level" | "owned" | "energy">,
+  size: TaskSize
+): number {
+  return Math.round(
+    BASE_PAYOUT[size] * careerMult(s.level) * gearMult(s.owned) * energyMult(s.energy)
+  );
+}
 
-export interface JungleState {
-  // profile
+function cheapestOwned(owned: Owned): ShopItem | undefined {
+  let best: ShopItem | undefined;
+  for (const id of Object.keys(owned)) {
+    if (!owned[id]) continue;
+    const it = shopItem(id);
+    if (!it) continue;
+    if (!best || it.price < best.price) best = it;
+  }
+  return best;
+}
+
+function makeOffers(reputation: number): ContractOffer[] {
+  const unlocked = CONTRACT_TIERS.filter((t) => reputation >= t.rep);
+  // Keep offers relevant: draw from the top two tiers you've unlocked.
+  const relevant = unlocked.slice(-2);
+  const out: ContractOffer[] = [];
+  for (let i = 0; i < 3; i++) {
+    const t = pick(relevant);
+    const variance = 0.85 + Math.random() * 0.3;
+    out.push({
+      id: uid("offer"),
+      client: pick(CLIENT_NAMES),
+      title: pick(CONTRACT_TITLES),
+      tier: t.tier,
+      payout: Math.round((t.payout * variance) / 100) * 100,
+      units: t.units,
+      days: t.days
+    });
+  }
+  return out;
+}
+
+/* ---------- store ---------- */
+
+export interface GameState {
+  // money & needs
+  money: number;
+  energy: number;
+  /** Days of food in stock. */
+  food: number;
+  starveDays: number;
+
+  // career
   level: number;
-  currentXP: number;
-  bananaBalance: number;
-  streak: number;
-  lastCheckInDate: string;
-  bananasToday: number;
-  focusMinutesToday: number;
-  activeDate: string;
+  xp: number;
+  reputation: number;
+  totalEarned: number;
+
+  // property
+  housingTier: number;
+  owned: Owned;
+
+  // rent
+  rentDue: string;
+  lateDays: number;
 
   // content
+  tasks: WorkTask[];
   habits: Habit[];
-  goals: Goal[];
-  tasks: Task[];
-  challenge: Challenge;
-  inventory: Record<string, number>;
-  placed: PlacedItem[];
+  contract: Contract | null;
+  offers: ContractOffer[];
   ledger: LedgerEntry[];
 
-  // session / prefs
-  focus: FocusSession | null;
-  sound: boolean;
-  night: boolean;
+  // bookkeeping
+  lastDay: string;
+  report: GameEvent[] | null;
   toast: string | null;
   celebrationLevel: number | null;
+  millionaire: boolean;
+  showMillionaire: boolean;
+  night: boolean;
 
   // actions
-  rollover: () => void;
-  checkIn: () => void;
-  setHabitStatus: (habitId: string, dk: string, status: DayStatus) => void;
-  addHabit: (h: Omit<Habit, "id" | "history">) => void;
-  deleteHabit: (id: string) => void;
-  addGoal: (title: string, note: string, color: string) => void;
-  bumpGoal: (id: string, delta: number) => void;
-  deleteGoal: (id: string) => void;
-  addTask: (title: string, color: string) => void;
+  processDays: () => void;
+  addTask: (title: string, size: TaskSize) => void;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
-  completeChallenge: () => void;
-  rerollChallenge: () => void;
-  skipChallenge: () => void;
-  startFocus: (minutes: number) => void;
-  finishFocus: (completed: boolean) => void;
-  buyItem: (itemId: string) => void;
-  placeItem: (itemId: string, variant: number, x: number, y: number) => boolean;
-  removePlaced: (placedId: string) => void;
-  setSound: (v: boolean) => void;
-  setNight: (v: boolean) => void;
+  toggleHabit: (id: string) => void;
+  addHabit: (title: string, energy: number) => void;
+  deleteHabit: (id: string) => void;
+  acceptOffer: (id: string) => void;
+  rerollOffers: () => void;
+  abandonContract: () => void;
+  buy: (itemId: string) => void;
+  moveHouse: () => void;
+  payRentNow: () => void;
+  eat: () => void;
   setToast: (msg: string | null) => void;
+  setNight: (v: boolean) => void;
+  dismissReport: () => void;
   dismissCelebration: () => void;
-  addBananas: (delta: number, reason: string) => void;
-  addXP: (amount: number) => void;
+  dismissMillionaire: () => void;
+
+  // internal — called by the actions above
+  addXPInternal: (amount: number) => void;
+  checkMillionaire: () => void;
 }
 
-export const useJungle = create<JungleState>()(
+export const useGame = create<GameState>()(
   persist(
     (set, get) => ({
-      level: 3,
-      currentXP: 40,
-      bananaBalance: 320,
-      streak: 3,
-      lastCheckInDate: keyDaysAgo(1),
-      bananasToday: 0,
-      focusMinutesToday: 0,
-      activeDate: dateKey(),
+      money: START_MONEY,
+      energy: START_ENERGY,
+      food: START_FOOD,
+      starveDays: 0,
 
+      level: 1,
+      xp: 0,
+      reputation: 0,
+      totalEarned: 0,
+
+      housingTier: 0,
+      owned: {},
+
+      rentDue: keyPlusDays(dateKey(), RENT_PERIOD_DAYS),
+      lateDays: 0,
+
+      tasks: [],
       habits: seedHabits(),
-      goals: seedGoals(),
-      tasks: seedTasks(),
-      challenge: { ...CHALLENGE_POOL[0], state: "pending", date: dateKey() },
-      inventory: { grass: 1 },
-      placed: seedPlaced(),
-      ledger: seedLedger(),
+      contract: null,
+      offers: makeOffers(0),
+      ledger: [],
 
-      focus: null,
-      sound: true,
-      night: false,
+      lastDay: dateKey(),
+      report: null,
       toast: null,
       celebrationLevel: null,
+      millionaire: false,
+      showMillionaire: false,
+      night: false,
 
-      addBananas: (delta, reason) => {
-        set((s) => ({
-          bananaBalance: Math.max(0, s.bananaBalance + delta),
-          bananasToday: delta > 0 ? s.bananasToday + delta : s.bananasToday,
-          ledger: [{ ts: Date.now(), delta, reason }, ...s.ledger].slice(0, 30)
-        }));
-      },
+      /* ----- earning / spending ----- */
 
-      addXP: (amount) => {
-        let { level, currentXP } = get();
-        let leveled = false;
-        currentXP += amount;
-        if (amount < 0) currentXP = Math.max(0, currentXP);
-        while (currentXP >= xpToNext(level)) {
-          currentXP -= xpToNext(level);
-          level += 1;
-          leveled = true;
-        }
-        set({ level, currentXP, celebrationLevel: leveled ? level : get().celebrationLevel });
-      },
-
-      rollover: () => {
-        const s = get();
-        const today = dateKey();
-        if (s.activeDate === today && s.challenge.date === today) return;
-        const yesterday = keyDaysAgo(1);
-        const lostStreak =
-          s.streak > 0 && s.lastCheckInDate !== today && s.lastCheckInDate !== yesterday;
-        set({
-          activeDate: today,
-          bananasToday: 0,
-          focusMinutesToday: 0,
-          challenge: randomChallenge(),
-          streak: lostStreak ? 0 : s.streak,
-          toast: lostStreak
-            ? "Streak lost! Check in today to start a new one."
-            : s.toast
-        });
-      },
-
-      checkIn: () => {
-        const s = get();
-        const today = dateKey();
-        if (s.lastCheckInDate === today) {
-          set({ toast: "Already checked in today. See you tomorrow!" });
-          return;
-        }
-        const newStreak = s.lastCheckInDate === keyDaysAgo(1) ? s.streak + 1 : 1;
-        const bonus = newStreak >= STREAK_BONUS_MIN ? STREAK_BONUS_BANANAS : 0;
-        set({
-          streak: newStreak,
-          lastCheckInDate: today,
-          habits: s.habits.map((h) =>
-            h.isCheckIn ? { ...h, history: { ...h.history, [today]: "done" } } : h
-          )
-        });
-        get().addBananas(CHECKIN_REWARD + bonus, bonus ? "Daily check-in + streak bonus" : "Daily check-in");
-        get().addXP(10);
-        set({ toast: `Checked in! ${newStreak} day streak 🔥` });
-      },
-
-      setHabitStatus: (habitId, dk, status) => {
-        const s = get();
-        const habit = s.habits.find((h) => h.id === habitId);
-        if (!habit || habit.isCheckIn) return;
-        const prev: DayStatus = habit.history[dk] || "todo";
-        if (prev === status) return;
-
-        // Reward only when marking today's habit done (and revoke on undo).
-        const isToday = dk === dateKey();
-        if (isToday && status === "done" && prev !== "done") {
-          const streakBefore = habitStreak(habit.history, addDays(-1));
-          const bonus = streakBefore + 1 >= STREAK_BONUS_MIN ? STREAK_BONUS_BANANAS : 0;
-          get().addBananas(habit.bananaReward + bonus, bonus ? `${habit.title} + streak bonus` : habit.title);
-          get().addXP(habit.bananaReward * 2);
-        } else if (isToday && prev === "done" && status !== "done") {
-          get().addBananas(-habit.bananaReward, `${habit.title} (undone)`);
-          get().addXP(-habit.bananaReward * 2);
-        }
-
-        set((st) => ({
-          habits: st.habits.map((h) => {
-            if (h.id !== habitId) return h;
-            const history = { ...h.history };
-            if (status === "todo") delete history[dk];
-            else history[dk] = status;
-            return { ...h, history };
-          })
-        }));
-      },
-
-      addHabit: (h) => {
-        set((s) => ({ habits: [...s.habits, { ...h, id: uid("habit"), history: {} }] }));
-        set({ toast: "New quest added!" });
-      },
-
-      deleteHabit: (id) => {
-        set((s) => ({ habits: s.habits.filter((h) => h.id !== id || h.isCheckIn) }));
-      },
-
-      addGoal: (title, note, color) => {
-        set((s) => ({ goals: [...s.goals, { id: uid("goal"), title, note, progress: 0, color }] }));
-      },
-      bumpGoal: (id, delta) => {
-        set((s) => ({
-          goals: s.goals.map((g) =>
-            g.id === id ? { ...g, progress: Math.min(100, Math.max(0, g.progress + delta)) } : g
-          )
-        }));
-        const g = get().goals.find((x) => x.id === id);
-        if (g && g.progress >= 100) {
-          get().addBananas(50, `Goal reached: ${g.title}`);
-          set({ toast: `Goal reached: ${g.title}! +50 bananas` });
-        }
-      },
-      deleteGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
-
-      addTask: (title, color) => {
-        if (!title.trim()) return;
-        set((s) => ({ tasks: [...s.tasks, { id: uid("task"), title: title.trim(), color, done: false }] }));
-      },
-      toggleTask: (id) => {
-        const t = get().tasks.find((x) => x.id === id);
+      addTask: (title, size) => {
+        const t = title.trim();
         if (!t) return;
-        set((s) => ({ tasks: s.tasks.map((x) => (x.id === id ? { ...x, done: !x.done } : x)) }));
-        if (!t.done) get().addBananas(TASK_REWARD, `Task: ${t.title}`);
-        else get().addBananas(-TASK_REWARD, `Task undone: ${t.title}`);
+        set((s) => ({
+          tasks: [
+            ...s.tasks,
+            { id: uid("task"), title: t, size, done: false, date: dateKey() }
+          ]
+        }));
       },
+
       deleteTask: (id) => set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) })),
 
-      completeChallenge: () => {
+      toggleTask: (id) => {
         const s = get();
-        if (s.challenge.state !== "pending") return;
-        const early = new Date().getHours() < 18 ? CHALLENGE_EARLY_BONUS : 0;
-        set({ challenge: { ...s.challenge, state: "completed" } });
-        get().addBananas(
-          s.challenge.reward + early,
-          early ? "Daily challenge (early bird!)" : "Daily challenge"
-        );
-        get().addXP(15);
-        set({ toast: early ? "Challenge done early — bonus bananas!" : "Challenge complete!" });
-      },
-      rerollChallenge: () => {
-        const s = get();
-        if (s.challenge.state !== "pending") return;
-        set({ challenge: randomChallenge(s.challenge.key) });
-      },
-      skipChallenge: () => {
-        set((s) => ({ challenge: { ...s.challenge, state: "skipped" } }));
-      },
+        const task = s.tasks.find((t) => t.id === id);
+        if (!task) return;
 
-      startFocus: (minutes) => {
-        set({ focus: { endsAt: Date.now() + minutes * 60000, minutes } });
-      },
-      finishFocus: (completed) => {
-        const s = get();
-        if (!s.focus) return;
-        const { minutes, endsAt } = s.focus;
-        const elapsedMin = Math.max(
-          0,
-          Math.min(minutes, Math.round((minutes * 60000 - (endsAt - Date.now())) / 60000))
-        );
-        set({ focus: null });
-        if (completed) {
-          set({ focusMinutesToday: s.focusMinutesToday + minutes });
-          get().addBananas(minutes, `Focus session (${minutes}m)`);
-          get().addXP(minutes * 2);
-          set({ toast: `Focus complete! +${minutes} bananas` });
-        } else {
+        const units = TASK_UNITS[task.size];
+
+        if (!task.done) {
+          const pay = taskPayout(s, task.size);
+          const xpGain = XP_PER_TASK[task.size];
+
+          let contract = s.contract;
+          let money = s.money + pay;
+          let reputation = s.reputation;
+          const ledger: LedgerEntry[] = [
+            { ts: Date.now(), delta: pay, reason: task.title },
+            ...s.ledger
+          ];
+          let extraToast = "";
+
+          if (contract && contract.state === "active") {
+            const delivered = contract.delivered + units;
+            if (delivered >= contract.units) {
+              money += contract.payout;
+              reputation += REP_ON_DELIVER + contract.tier;
+              ledger.unshift({
+                ts: Date.now(),
+                delta: contract.payout,
+                reason: `Zakázka: ${contract.title}`
+              });
+              extraToast = ` Zakázka hotová! +${formatMoney(contract.payout)}`;
+              contract = null;
+            } else {
+              contract = { ...contract, delivered };
+            }
+          }
+
           set({
-            focusMinutesToday: s.focusMinutesToday + elapsedMin,
-            toast: "Focus ended early. Monke understands."
+            money,
+            contract,
+            reputation,
+            ledger: ledger.slice(0, 40),
+            totalEarned: s.totalEarned + pay,
+            tasks: s.tasks.map((t) => (t.id === id ? { ...t, done: true } : t)),
+            toast: `+${formatMoney(pay)}${extraToast}`
+          });
+          get().addXPInternal(xpGain);
+          get().checkMillionaire();
+        } else {
+          // Undo — take the money back. A finished contract stays finished.
+          const pay = taskPayout(s, task.size);
+          set({
+            money: Math.max(0, s.money - pay),
+            totalEarned: Math.max(0, s.totalEarned - pay),
+            tasks: s.tasks.map((t) => (t.id === id ? { ...t, done: false } : t)),
+            contract:
+              s.contract && s.contract.state === "active"
+                ? { ...s.contract, delivered: Math.max(0, s.contract.delivered - units) }
+                : s.contract,
+            ledger: [
+              { ts: Date.now(), delta: -pay, reason: `Vráceno: ${task.title}` },
+              ...s.ledger
+            ].slice(0, 40)
           });
         }
       },
 
-      buyItem: (itemId) => {
-        const item = shopItem(itemId);
+      toggleHabit: (id) => {
         const s = get();
-        if (!item) return;
-        if (s.level < categoryUnlockLevel(item.category)) {
-          set({ toast: `Reach level ${categoryUnlockLevel(item.category)} to unlock ${item.category}.` });
-          return;
-        }
-        if (s.bananaBalance < item.price) {
-          set({ toast: "Not enough bananas! Complete some habits first." });
-          return;
-        }
-        get().addBananas(-item.price, `Shop: ${item.name}`);
-        set((st) => ({
-          inventory: { ...st.inventory, [itemId]: (st.inventory[itemId] || 0) + 1 },
-          toast: `${item.name} bought! Tap the pencil to place it.`
-        }));
+        const today = dateKey();
+        const habit = s.habits.find((h) => h.id === id);
+        if (!habit) return;
+        const wasDone = habit.history[today] === "done";
+
+        set({
+          habits: s.habits.map((h) => {
+            if (h.id !== id) return h;
+            const history = { ...h.history };
+            if (wasDone) delete history[today];
+            else history[today] = "done";
+            return { ...h, history };
+          }),
+          energy: Math.max(
+            0,
+            Math.min(ENERGY_MAX, s.energy + (wasDone ? -habit.energy : habit.energy))
+          )
+        });
+        get().addXPInternal(wasDone ? -XP_PER_HABIT : XP_PER_HABIT);
+        if (!wasDone) set({ toast: `${habit.title} ✓  +${habit.energy} energie` });
       },
 
-      placeItem: (itemId, variant, x, y) => {
-        const s = get();
-        const item = shopItem(itemId);
-        if (!item || (s.inventory[itemId] || 0) <= 0) return false;
-        const land = isLand(x, y, s.level);
-        if (item.water ? land : !land) return false;
-        if (s.placed.some((p) => p.x === x && p.y === y)) return false;
-        set((st) => ({
-          inventory: { ...st.inventory, [itemId]: (st.inventory[itemId] || 0) - 1 },
-          placed: [...st.placed, { id: uid("pl"), itemId, variant, x, y }]
-        }));
-        return true;
-      },
-
-      removePlaced: (placedId) => {
-        const p = get().placed.find((x) => x.id === placedId);
-        if (!p) return;
+      addHabit: (title, energy) => {
+        const t = title.trim();
+        if (!t) return;
         set((s) => ({
-          placed: s.placed.filter((x) => x.id !== placedId),
-          inventory: { ...s.inventory, [p.itemId]: (s.inventory[p.itemId] || 0) + 1 }
+          habits: [
+            ...s.habits,
+            { id: uid("habit"), title: t, icon: "sun", energy, history: {} }
+          ]
         }));
       },
 
-      setSound: (v) => set({ sound: v }),
-      setNight: (v) => set({ night: v }),
+      deleteHabit: (id) => set((s) => ({ habits: s.habits.filter((h) => h.id !== id) })),
+
+      /* ----- contracts ----- */
+
+      acceptOffer: (id) => {
+        const s = get();
+        if (s.contract && s.contract.state === "active") {
+          set({ toast: "Nejdřív dokonči rozdělanou zakázku." });
+          return;
+        }
+        const offer = s.offers.find((o) => o.id === id);
+        if (!offer) return;
+        set({
+          contract: {
+            id: uid("contract"),
+            client: offer.client,
+            title: offer.title,
+            tier: offer.tier,
+            payout: offer.payout,
+            units: offer.units,
+            delivered: 0,
+            due: keyPlusDays(dateKey(), offer.days),
+            state: "active"
+          },
+          offers: s.offers.filter((o) => o.id !== id),
+          toast: `Zakázka přijata: ${offer.title}`
+        });
+      },
+
+      rerollOffers: () => set((s) => ({ offers: makeOffers(s.reputation) })),
+
+      abandonContract: () => {
+        const s = get();
+        if (!s.contract) return;
+        set({
+          contract: null,
+          reputation: Math.max(0, s.reputation - REP_ON_FAIL),
+          toast: `Zakázka zrušena. Reputace −${REP_ON_FAIL}.`
+        });
+      },
+
+      /* ----- shopping ----- */
+
+      buy: (itemId) => {
+        const s = get();
+        const item = shopItem(itemId);
+        if (!item) return;
+
+        if ((item.minHousing ?? 0) > s.housingTier) {
+          set({ toast: `Tohle se ti sem nevejde — potřebuješ lepší bydlení.` });
+          return;
+        }
+        if (item.category !== "food" && s.owned[itemId]) {
+          set({ toast: "To už máš." });
+          return;
+        }
+        if (s.money < item.price) {
+          set({ toast: "Na to nemáš. Odškrtni si nějakou práci." });
+          return;
+        }
+
+        const ledger: LedgerEntry[] = [
+          { ts: Date.now(), delta: -item.price, reason: item.name },
+          ...s.ledger
+        ];
+
+        if (item.category === "food") {
+          set({
+            money: s.money - item.price,
+            food: s.food + (item.foodDays ?? 0),
+            energy: Math.min(ENERGY_MAX, s.energy + (item.energy ?? 0)),
+            starveDays: 0,
+            ledger: ledger.slice(0, 40),
+            toast: `${item.name} — zásoby na ${s.food + (item.foodDays ?? 0)} dní`
+          });
+        } else {
+          set({
+            money: s.money - item.price,
+            owned: { ...s.owned, [itemId]: true },
+            ledger: ledger.slice(0, 40),
+            toast: `${item.name} koupeno!`
+          });
+        }
+        get().checkMillionaire();
+      },
+
+      moveHouse: () => {
+        const s = get();
+        const next = s.housingTier + 1;
+        if (next >= HOUSING.length) {
+          set({ toast: "Bydlíš na maximu. Gratuluju." });
+          return;
+        }
+        const target = HOUSING[next];
+        if (s.money < target.price) {
+          set({ toast: `Na ${target.name} potřebuješ ${formatMoney(target.price)}.` });
+          return;
+        }
+        set({
+          money: s.money - target.price,
+          housingTier: next,
+          rentDue: keyPlusDays(dateKey(), RENT_PERIOD_DAYS),
+          lateDays: 0,
+          ledger: [
+            { ts: Date.now(), delta: -target.price, reason: `Přestěhování: ${target.name}` },
+            ...s.ledger
+          ].slice(0, 40),
+          toast: `Stěhuješ se do ${target.name}!`
+        });
+        get().checkMillionaire();
+      },
+
+      payRentNow: () => {
+        const s = get();
+        const rent = housing(s.housingTier).rent;
+        if (s.money < rent) {
+          set({ toast: `Nájem je ${formatMoney(rent)} a ty máš ${formatMoney(s.money)}.` });
+          return;
+        }
+        const today = dateKey();
+        const base = daysBetween(today, s.rentDue) > 0 ? s.rentDue : today;
+        set({
+          money: s.money - rent,
+          rentDue: keyPlusDays(base, RENT_PERIOD_DAYS),
+          lateDays: 0,
+          ledger: [
+            { ts: Date.now(), delta: -rent, reason: "Nájem" },
+            ...s.ledger
+          ].slice(0, 40),
+          toast: `Nájem zaplacen — klid na ${RENT_PERIOD_DAYS} dní.`
+        });
+      },
+
+      eat: () => {
+        const s = get();
+        if (s.food <= 0) {
+          set({ toast: "Nemáš žádné jídlo. Kup něco v obchodě." });
+          return;
+        }
+        set({
+          food: s.food - 1,
+          energy: Math.min(ENERGY_MAX, s.energy + 10),
+          starveDays: 0,
+          toast: "Najedl jsi se. +10 energie"
+        });
+      },
+
+      /* ----- the world moves on without you ----- */
+
+      processDays: () => {
+        const s = get();
+        const today = dateKey();
+        if (s.lastDay === today) return;
+
+        const gap = daysBetween(s.lastDay, today);
+        if (gap <= 0) {
+          // Clock moved backwards (timezone or manual change) — just resync.
+          set({ lastDay: today });
+          return;
+        }
+        const simulate = Math.min(gap, MAX_CATCHUP_DAYS);
+
+        let money = s.money;
+        let energy = s.energy;
+        let food = s.food;
+        let starveDays = s.starveDays;
+        let lateDays = s.lateDays;
+        let rentDue = s.rentDue;
+        let housingTier = s.housingTier;
+        let reputation = s.reputation;
+        let contract = s.contract;
+        const owned: Owned = { ...s.owned };
+
+        const events: GameEvent[] = [];
+        let evictions = 0;
+        let seizures = 0;
+        let day = s.lastDay;
+
+        for (let i = 0; i < simulate; i++) {
+          day = keyPlusDays(day, 1);
+
+          // energy: drain, comfort, food
+          energy -= ENERGY_DAILY_DRAIN;
+          energy += comfortRecovery(owned);
+
+          if (food > 0) {
+            food -= 1;
+            energy += 10;
+            starveDays = 0;
+          } else {
+            starveDays += 1;
+            energy -= STARVE_ENERGY;
+            events.push({ kind: "starve", day, text: "Celý den bez jídla." });
+          }
+          energy = Math.max(0, Math.min(ENERGY_MAX, Math.round(energy)));
+
+          // starving too long — something has to go
+          if (starveDays >= STARVE_SEIZE_DAYS && seizures < MAX_SEIZURES_PER_CATCHUP) {
+            const sell = cheapestOwned(owned);
+            if (sell) {
+              delete owned[sell.id];
+              const got = Math.round(sell.price * 0.6);
+              money += got;
+              food += 2;
+              starveDays = 0;
+              seizures += 1;
+              events.push({
+                kind: "seized",
+                day,
+                text: `Prodal jsi ${sell.name} za ${formatMoney(got)}, aby bylo co jíst.`
+              });
+            }
+          }
+
+          // rent
+          if (daysBetween(rentDue, day) >= 0) {
+            const rent = housing(housingTier).rent;
+            if (money >= rent) {
+              money -= rent;
+              rentDue = keyPlusDays(day, RENT_PERIOD_DAYS);
+              lateDays = 0;
+              events.push({ kind: "rent", day, text: `Nájem ${formatMoney(rent)} zaplacen.` });
+            } else {
+              lateDays += 1;
+              if (lateDays > RENT_GRACE_DAYS && evictions < MAX_EVICTIONS_PER_CATCHUP) {
+                const from = housing(housingTier).name;
+                housingTier = Math.max(0, housingTier - 1);
+                const lost: string[] = [];
+                for (const id of Object.keys(owned)) {
+                  const it = shopItem(id);
+                  if (it && (it.minHousing ?? 0) > housingTier) {
+                    delete owned[id];
+                    lost.push(it.name);
+                  }
+                }
+                evictions += 1;
+                lateDays = 0;
+                rentDue = keyPlusDays(day, RENT_PERIOD_DAYS);
+                events.push({
+                  kind: "evict",
+                  day,
+                  text:
+                    `Vystěhován z ${from} → ${housing(housingTier).name}.` +
+                    (lost.length ? ` Nevešlo se: ${lost.join(", ")}.` : "")
+                });
+              } else if (lateDays <= RENT_GRACE_DAYS) {
+                events.push({
+                  kind: "rent",
+                  day,
+                  text: `Nájem nezaplacen — ${lateDays}. den odkladu z ${RENT_GRACE_DAYS}.`
+                });
+              }
+            }
+          }
+
+          // contract deadline
+          if (contract && contract.state === "active" && daysBetween(contract.due, day) > 0) {
+            reputation = Math.max(0, reputation - REP_ON_FAIL);
+            events.push({
+              kind: "contract",
+              day,
+              text: `Zakázka „${contract.title}" propadla. Reputace −${REP_ON_FAIL}.`
+            });
+            contract = null;
+          }
+        }
+
+        if (gap > simulate) {
+          events.unshift({
+            kind: "info",
+            day: today,
+            text: `Byl jsi pryč ${gap} dní. Započítalo se posledních ${simulate}.`
+          });
+        }
+
+        // Unfinished work carries over; finished work is cleared.
+        const tasks = s.tasks.filter((t) => !t.done).map((t) => ({ ...t, date: today }));
+
+        set({
+          money,
+          energy,
+          food,
+          starveDays,
+          lateDays,
+          rentDue,
+          housingTier,
+          reputation,
+          contract,
+          owned,
+          tasks,
+          lastDay: today,
+          offers: makeOffers(reputation),
+          report: events.length ? events : null
+        });
+      },
+
+      /* ----- internals & UI ----- */
+
+      addXPInternal: (amount: number) => {
+        const s = get();
+        let level = s.level;
+        let xp = s.xp + amount;
+        let leveled = false;
+        while (xp >= xpToNext(level)) {
+          xp -= xpToNext(level);
+          level += 1;
+          leveled = true;
+        }
+        if (xp < 0) xp = 0;
+        set({ level, xp, celebrationLevel: leveled ? level : s.celebrationLevel });
+      },
+
+      checkMillionaire: () => {
+        const s = get();
+        if (!s.millionaire && netWorth(s) >= MILLION_GOAL) {
+          set({ millionaire: true, showMillionaire: true });
+        }
+      },
+
       setToast: (msg) => set({ toast: msg }),
-      dismissCelebration: () => set({ celebrationLevel: null })
+      setNight: (v) => set({ night: v }),
+      dismissReport: () => set({ report: null }),
+      dismissCelebration: () => set({ celebrationLevel: null }),
+      dismissMillionaire: () => set({ showMillionaire: false })
     }),
     {
-      name: "jungle-habits-v1",
+      name: "grind-v1",
       storage: createJSONStorage(() => localStorage)
     }
   )
 );
 
-export function resetAllData() {
+export function resetAllData(): void {
   try {
-    localStorage.removeItem("jungle-habits-v1");
+    localStorage.removeItem("grind-v1");
   } catch {}
   window.location.reload();
 }
