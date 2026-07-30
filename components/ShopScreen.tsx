@@ -26,24 +26,24 @@ export default function ShopScreen({ onClose }: { onClose: () => void }) {
   const items = SHOP_ITEMS.filter((i) => i.category === cat);
 
   return (
-    <Sheet title="Obchod" subtitle={formatMoney(money)} onClose={onClose}>
+    <Sheet title="Shop" subtitle={formatMoney(money)} onClose={onClose}>
       {/* stock + multiplier summary */}
       <div className="mb-3 flex gap-2">
         <Panel className="flex-1 !p-2">
           <div className="flex items-center gap-1.5 text-[11px] text-dim">
             <Food />
-            Zásoby jídla
+            Food in stock
           </div>
           <p
             className={`mt-0.5 font-display text-lg leading-none ${
               food <= 0 ? "text-danger" : food <= 2 ? "text-warn" : "text-text"
             }`}
           >
-            {food} dní
+            {food} days
           </p>
         </Panel>
         <Panel className="flex-1 !p-2">
-          <div className="text-[11px] text-dim">Bonus z vybavení</div>
+          <div className="text-[11px] text-dim">Gear bonus</div>
           <p className="mt-0.5 font-display text-lg leading-none text-gold">
             × {gearMult(owned).toFixed(2)}
           </p>
@@ -82,17 +82,17 @@ export default function ShopScreen({ onClose }: { onClose: () => void }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-sm text-text">{item.name}</span>
-                    {isOwned && <Chip tone="green">máš</Chip>}
+                    {isOwned && <Chip tone="green">owned</Chip>}
                     {locked && (
                       <Chip tone="danger">
-                        vyžaduje: {housing(item.minHousing ?? 0).name}
+                        needs: {housing(item.minHousing ?? 0).name}
                       </Chip>
                     )}
                   </div>
                   <p className="mt-0.5 text-[11px] leading-snug text-dim">{item.desc}</p>
                   {item.foodDays && (
                     <p className="mt-0.5 text-[10px] text-dim">
-                      {Math.round(item.price / item.foodDays)} Kč / den
+                      {Math.round(item.price / item.foodDays)} Kč / day
                     </p>
                   )}
                 </div>
@@ -108,7 +108,7 @@ export default function ShopScreen({ onClose }: { onClose: () => void }) {
                     onClick={() => buy(item.id)}
                     className="mt-1 !px-2 !py-1 !text-[11px]"
                   >
-                    {isOwned ? "koupeno" : locked ? "zamčeno" : tooPoor ? "nemáš" : "Koupit"}
+                    {isOwned ? "owned" : locked ? "locked" : tooPoor ? "can't afford" : "Buy"}
                   </Btn>
                 </div>
               </div>
@@ -119,7 +119,7 @@ export default function ShopScreen({ onClose }: { onClose: () => void }) {
 
       {cat === "vehicle" && (
         <p className="mt-3 text-center text-[11px] text-dim">
-          Za oknem se vždycky ukáže to nejlepší, co máš.
+          Transport counts toward your net worth. A garage to show it off is still to come.
         </p>
       )}
     </Sheet>

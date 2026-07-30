@@ -8,10 +8,10 @@ import { dateKey } from "@/lib/date";
 export type Tab = "work" | "habits" | "shop" | "home";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: "work", label: "Práce", icon: <WorkIcon size={16} /> },
-  { id: "habits", label: "Návyky", icon: <HabitIcon size={16} /> },
-  { id: "shop", label: "Obchod", icon: <CartIcon size={16} /> },
-  { id: "home", label: "Bydlení", icon: <HomeIcon size={16} /> }
+  { id: "work", label: "Work", icon: <WorkIcon size={16} /> },
+  { id: "habits", label: "Habits", icon: <HabitIcon size={16} /> },
+  { id: "shop", label: "Shop", icon: <CartIcon size={16} /> },
+  { id: "home", label: "Home", icon: <HomeIcon size={16} /> }
 ];
 
 export default function ActionBar({ onOpen }: { onOpen: (t: Tab) => void }) {

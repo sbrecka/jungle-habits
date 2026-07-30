@@ -27,8 +27,8 @@ export default function HabitsScreen({ onClose }: { onClose: () => void }) {
 
   return (
     <Sheet
-      title="Návyky"
-      subtitle={`${doneCount}/${habits.length} dnes`}
+      title="Habits"
+      subtitle={`${doneCount}/${habits.length} today`}
       onClose={onClose}
     >
       <Panel className="mb-3">
@@ -39,7 +39,7 @@ export default function HabitsScreen({ onClose }: { onClose: () => void }) {
           </span>
           <span className="text-[11px] text-dim">{energyLabel(energy)}</span>
           <span className="ml-auto text-[11px] text-dim">
-            výdělek × <span className="text-gold">{energyMult(energy).toFixed(2)}</span>
+            earnings × <span className="text-gold">{energyMult(energy).toFixed(2)}</span>
           </span>
         </div>
         <div className="mt-2">
@@ -51,12 +51,12 @@ export default function HabitsScreen({ onClose }: { onClose: () => void }) {
           />
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-dim">
-          Návyky nepřinášejí peníze přímo — dávají energii, a ta násobí každou výplatu.
-          Vyčerpaný člověk vydělá zlomek toho, co odpočatý.
+          Habits pay no money directly — they restore energy, and energy multiplies
+          every payout. Exhausted, you earn a fraction of what you would rested.
         </p>
         {food > 0 && (
           <Btn onClick={eat} className="mt-2 w-full !text-[11px]">
-            Najíst se (+10 energie, −1 den zásob)
+            Eat (+10 energy, −1 day of food)
           </Btn>
         )}
       </Panel>
@@ -75,7 +75,7 @@ export default function HabitsScreen({ onClose }: { onClose: () => void }) {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggleHabit(h.id)}
-                  aria-label={isDone ? "Vrátit zpět" : "Označit jako hotové"}
+                  aria-label={isDone ? "Undo" : "Mark as done"}
                   className={`grid h-7 w-7 shrink-0 place-items-center rounded border active:scale-95 ${
                     isDone ? "border-green text-green" : "border-line text-transparent"
                   }`}
@@ -88,14 +88,14 @@ export default function HabitsScreen({ onClose }: { onClose: () => void }) {
                     {h.title}
                   </p>
                   <div className="mt-0.5 flex items-center gap-2">
-                    <span className="text-[10px] text-green">+{h.energy} energie</span>
-                    {streak > 0 && <Chip tone="warn">{streak} dní v řadě</Chip>}
+                    <span className="text-[10px] text-green">+{h.energy} energy</span>
+                    {streak > 0 && <Chip tone="warn">{streak} day streak</Chip>}
                   </div>
                 </div>
 
                 <button
                   onClick={() => deleteHabit(h.id)}
-                  aria-label="Smazat návyk"
+                  aria-label="Delete habit"
                   className="shrink-0 text-dim active:scale-95"
                 >
                   <X />
@@ -109,7 +109,7 @@ export default function HabitsScreen({ onClose }: { onClose: () => void }) {
       </div>
 
       {habits.length === 0 && (
-        <EmptyState>Žádné návyky. Přidej si něco, co ti reálně zvedne výkon.</EmptyState>
+        <EmptyState>No habits yet. Add something that genuinely lifts your output.</EmptyState>
       )}
 
       <Panel className="mt-3">
@@ -118,7 +118,7 @@ export default function HabitsScreen({ onClose }: { onClose: () => void }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder="Nový návyk…"
+            placeholder="New habit…"
             className="min-w-0 flex-1 rounded border border-line bg-bg px-2 py-2 text-sm text-text outline-none placeholder:text-dim focus:border-blue"
           />
           <Btn onClick={submit} className="shrink-0">

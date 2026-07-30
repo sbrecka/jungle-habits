@@ -50,8 +50,8 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
 
   return (
     <Sheet
-      title="Práce"
-      subtitle={`× ${careerMult(level).toFixed(2)} kariéra · × ${energyMult(energy).toFixed(2)} energie`}
+      title="Work"
+      subtitle={`× ${careerMult(level).toFixed(2)} career · × ${energyMult(energy).toFixed(2)} energy`}
       onClose={onClose}
     >
       {/* ---- new task ---- */}
@@ -61,7 +61,7 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder="Co je dnes potřeba udělat?"
+            placeholder="What needs doing today?"
             className="min-w-0 flex-1 rounded border border-line bg-bg px-2 py-2 text-sm text-text outline-none placeholder:text-dim focus:border-blue"
           />
           <Btn variant="primary" onClick={submit} className="shrink-0">
@@ -96,14 +96,14 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <Chip tone="gold">Zakázka</Chip>
+                <Chip tone="gold">Job</Chip>
                 <span className="truncate text-[11px] text-dim">{contract.client}</span>
               </div>
               <p className="mt-1 text-sm text-text">{contract.title}</p>
             </div>
             <button
               onClick={abandonContract}
-              aria-label="Zrušit zakázku"
+              aria-label="Drop this job"
               className="shrink-0 text-dim active:scale-95"
             >
               <X />
@@ -119,29 +119,29 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
             />
             <div className="mt-1 flex items-center justify-between text-[11px]">
               <span className="text-dim">
-                {contract.delivered}/{contract.units} dílů odvedeno
+                {contract.delivered}/{contract.units} units delivered
               </span>
               <DeadlineChip due={contract.due} />
             </div>
           </div>
 
           <p className="mt-2 text-[11px] text-dim">
-            Odměna při dokončení{" "}
-            <span className="text-gold">{formatMoney(contract.payout)}</span>. Každý hotový
-            úkol počítá 1–3 díly.
+            Pays{" "}
+            <span className="text-gold">{formatMoney(contract.payout)}</span> on completion. Each finished task
+            delivers 1–3 units.
           </p>
         </Panel>
       )}
 
       {/* ---- today's tasks ---- */}
       <h3 className="mb-2 mt-4 font-display text-sm text-dim">
-        Úkoly ({open.length} zbývá)
+        Tasks ({open.length} left)
       </h3>
 
       {open.length === 0 && done.length === 0 && (
         <EmptyState>
-          Zapiš si, co dnes reálně musíš udělat. Za každý hotový úkol dostaneš zaplaceno —
-          a jen z toho zaplatíš nájem a jídlo.
+          Write down what you actually have to do today. Every finished task pays, and
+          that money is the only thing covering your rent and food.
         </EmptyState>
       )}
 
@@ -150,7 +150,7 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
           <div key={t.id} className="flex items-center gap-2 rounded border border-line bg-panel p-2">
             <button
               onClick={() => toggleTask(t.id)}
-              aria-label="Označit jako hotové"
+              aria-label="Mark as done"
               className="grid h-7 w-7 shrink-0 place-items-center rounded border border-line text-transparent active:scale-95"
               style={{ borderColor: SIZE_COLOR[t.size] }}
             />
@@ -163,7 +163,7 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
             <span className="shrink-0 text-sm text-gold">+{formatMoneyShort(pay(t.size))}</span>
             <button
               onClick={() => deleteTask(t.id)}
-              aria-label="Smazat úkol"
+              aria-label="Delete task"
               className="shrink-0 text-dim active:scale-95"
             >
               <X />
@@ -178,7 +178,7 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
           >
             <button
               onClick={() => toggleTask(t.id)}
-              aria-label="Vrátit zpět"
+              aria-label="Undo"
               className="grid h-7 w-7 shrink-0 place-items-center rounded border border-green text-green active:scale-95"
             >
               <Check />
@@ -191,21 +191,21 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
 
       {earnedToday > 0 && (
         <p className="mt-3 text-center text-[11px] text-dim">
-          Dnes vyděláno <span className="text-gold">{formatMoney(earnedToday)}</span>
+          Earned today <span className="text-gold">{formatMoney(earnedToday)}</span>
         </p>
       )}
 
       {/* ---- contract offers ---- */}
       <div className="mb-2 mt-6 flex items-center gap-2">
-        <h3 className="font-display text-sm text-dim">Nabídky zakázek</h3>
-        <Chip tone="blue">reputace {reputation}</Chip>
+        <h3 className="font-display text-sm text-dim">Job offers</h3>
+        <Chip tone="blue">reputation {reputation}</Chip>
         <Btn variant="ghost" onClick={rerollOffers} className="ml-auto !px-2 !py-1 !text-[11px]">
-          Obnovit
+          Refresh
         </Btn>
       </div>
 
       {contract ? (
-        <EmptyState>Nejdřív dokonči rozdělanou zakázku.</EmptyState>
+        <EmptyState>Finish the job you're already on first.</EmptyState>
       ) : (
         <div className="space-y-2">
           {offers.map((o) => {
@@ -213,20 +213,20 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
             return (
               <div key={o.id} className="rounded border border-line bg-panel p-2">
                 <div className="flex items-center gap-2">
-                  <Chip tone={o.tier >= 3 ? "gold" : "dim"}>{t?.label ?? "Zakázka"}</Chip>
+                  <Chip tone={o.tier >= 3 ? "gold" : "dim"}>{t?.label ?? "Job"}</Chip>
                   <span className="truncate text-[11px] text-dim">{o.client}</span>
                 </div>
                 <p className="mt-1 text-sm text-text">{o.title}</p>
                 <div className="mt-1 flex items-center gap-3 text-[11px] text-dim">
                   <span className="text-gold">{formatMoney(o.payout)}</span>
-                  <span>{o.units} dílů</span>
-                  <span>{o.days} dní</span>
+                  <span>{o.units} units</span>
+                  <span>{o.days} days</span>
                   <Btn
                     variant="primary"
                     onClick={() => acceptOffer(o.id)}
                     className="ml-auto !px-2 !py-1 !text-[11px]"
                   >
-                    Vzít
+                    Take it
                   </Btn>
                 </div>
               </div>
@@ -242,10 +242,10 @@ export default function WorkScreen({ onClose }: { onClose: () => void }) {
 
 function DeadlineChip({ due }: { due: string }) {
   const left = daysBetween(dateKey(), due);
-  if (left < 0) return <Chip tone="danger">po termínu</Chip>;
-  if (left === 0) return <Chip tone="danger">termín dnes</Chip>;
-  if (left <= 1) return <Chip tone="warn">zbývá {left} den</Chip>;
-  return <Chip tone="dim">zbývá {left} dní</Chip>;
+  if (left < 0) return <Chip tone="danger">overdue</Chip>;
+  if (left === 0) return <Chip tone="danger">due today</Chip>;
+  if (left <= 1) return <Chip tone="warn">{left} day left</Chip>;
+  return <Chip tone="dim">{left} days left</Chip>;
 }
 
 function NextTierHint({ reputation }: { reputation: number }) {
@@ -253,8 +253,8 @@ function NextTierHint({ reputation }: { reputation: number }) {
   if (!next) return null;
   return (
     <p className="mt-3 text-center text-[11px] text-dim">
-      Při reputaci {next.rep} se odemkne <span className="text-text">{next.label}</span> za{" "}
-      {formatMoneyShort(next.payout)}.
+      At reputation {next.rep} you unlock <span className="text-text">{next.label}</span>,{" "}
+      paying {formatMoneyShort(next.payout)}.
     </p>
   );
 }

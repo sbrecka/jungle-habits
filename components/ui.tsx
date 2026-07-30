@@ -22,7 +22,7 @@ export function Sheet({
         {subtitle && <span className="text-xs text-dim">{subtitle}</span>}
         <button
           onClick={onClose}
-          aria-label="Zavřít"
+          aria-label="Close"
           className="ml-auto grid h-8 w-8 place-items-center rounded border border-line text-dim active:scale-95"
         >
           <X />

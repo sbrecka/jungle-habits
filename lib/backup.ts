@@ -37,33 +37,33 @@ export interface ImportResult {
  */
 export function importSave(raw: string): ImportResult {
   const text = raw.trim();
-  if (!text) return { ok: false, error: "Nevložil jsi žádná data." };
+  if (!text) return { ok: false, error: "You have not pasted anything." };
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    return { ok: false, error: "Tohle není platná záloha — nejde to přečíst jako JSON." };
+    return { ok: false, error: "This is not a valid backup — it cannot be read as JSON." };
   }
 
   if (!parsed || typeof parsed !== "object") {
-    return { ok: false, error: "Tohle není platná záloha." };
+    return { ok: false, error: "This is not a valid backup." };
   }
   const state = (parsed as { state?: unknown }).state;
   if (!state || typeof state !== "object") {
-    return { ok: false, error: "Záloha neobsahuje herní stav." };
+    return { ok: false, error: "The backup contains no game state." };
   }
 
   const s = state as Record<string, unknown>;
   if (typeof s.money !== "number" || typeof s.housingTier !== "number") {
-    return { ok: false, error: "Záloha je poškozená — chybí peníze nebo bydlení." };
+    return { ok: false, error: "The backup is damaged — money or housing is missing." };
   }
 
   try {
     localStorage.setItem(SAVE_KEY, text);
     return { ok: true };
   } catch {
-    return { ok: false, error: "Nepodařilo se uložit — je úložiště prohlížeče plné?" };
+    return { ok: false, error: "Could not save — is the browser storage full?" };
   }
 }
 
@@ -98,7 +98,7 @@ export function readFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result ?? ""));
-    r.onerror = () => reject(new Error("Soubor se nepodařilo přečíst."));
+    r.onerror = () => reject(new Error("The file could not be read."));
     r.readAsText(file);
   });
 }

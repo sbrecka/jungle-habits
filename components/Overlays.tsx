@@ -46,13 +46,13 @@ export function LevelUp() {
       className="fade-in absolute inset-0 z-50 grid place-items-center bg-black/70 p-6"
     >
       <div className="pop-in w-full max-w-xs rounded border border-gold/60 bg-panel p-5 text-center">
-        <p className="text-[11px] uppercase tracking-widest text-dim">Postup v kariéře</p>
+        <p className="text-[11px] uppercase tracking-widest text-dim">Career progress</p>
         <p className="mt-1 font-display text-4xl leading-none text-gold">LVL {level}</p>
         <p className="mt-3 text-sm leading-relaxed text-text">
-          Každý úkol teď platí víc. Zkušenost se vyplácí.
+          Every task pays more now. Experience pays off.
         </p>
         <Btn variant="primary" className="mt-4 w-full">
-          Zpátky do práce
+          Back to work
         </Btn>
       </div>
     </button>
@@ -71,13 +71,13 @@ export function Millionaire() {
       className="fade-in absolute inset-0 z-50 grid place-items-center bg-black/80 p-6"
     >
       <div className="pop-in w-full max-w-xs rounded border border-gold bg-panel p-5 text-center">
-        <p className="font-display text-3xl leading-tight text-gold">Milion.</p>
+        <p className="font-display text-3xl leading-tight text-gold">One million.</p>
         <p className="mt-3 text-sm leading-relaxed text-text">
-          Začínal jsi ve sklepě s {formatMoney(600)} a nudlemi. Teď máš čistý majetek přes
-          milion korun. Každá koruna přišla z práce, kterou jsi reálně odvedl.
+          You started in a basement with {formatMoney(600)} and instant noodles. Your net worth
+          is now over a million. Every koruna came from work you actually did.
         </p>
         <Btn variant="primary" className="mt-4 w-full">
-          Pokračovat
+          Continue
         </Btn>
       </div>
     </button>
@@ -87,12 +87,12 @@ export function Millionaire() {
 /* ---------- what happened while you were gone ---------- */
 
 const KIND_STYLE: Record<string, { colour: string; label: string }> = {
-  rent: { colour: "text-warn", label: "Nájem" },
-  food: { colour: "text-dim", label: "Jídlo" },
-  starve: { colour: "text-danger", label: "Hlad" },
-  seized: { colour: "text-danger", label: "Prodáno" },
-  evict: { colour: "text-danger", label: "Vystěhování" },
-  contract: { colour: "text-danger", label: "Zakázka" },
+  rent: { colour: "text-warn", label: "Rent" },
+  food: { colour: "text-dim", label: "Food" },
+  starve: { colour: "text-danger", label: "Hunger" },
+  seized: { colour: "text-danger", label: "Sold" },
+  evict: { colour: "text-danger", label: "Eviction" },
+  contract: { colour: "text-danger", label: "Job" },
   info: { colour: "text-dim", label: "Info" }
 };
 
@@ -131,10 +131,10 @@ export function DayReport() {
       <div className="m-auto flex max-h-full w-full max-w-sm flex-col rounded border border-line bg-panel">
         <div className="border-b border-line p-4">
           <h2 className="font-display text-lg leading-tight text-text">
-            {bad ? "Zatímco jsi nepracoval…" : "Co se stalo mezitím"}
+            {bad ? "While you were not working…" : "What happened while you were away"}
           </h2>
           <p className="mt-1 text-[11px] text-dim">
-            Svět běžel dál. Nové bydlení: {housing(tier).name}.
+            The world kept going. Your place now: {housing(tier).name}.
           </p>
         </div>
 
@@ -156,7 +156,7 @@ export function DayReport() {
 
         <div className="border-t border-line p-3">
           <Btn variant="primary" onClick={dismiss} className="w-full">
-            Rozumím
+            Got it
           </Btn>
         </div>
       </div>
@@ -173,12 +173,12 @@ export function WarningStrip() {
 
   const warnings: { text: string; tone: string }[] = [];
   if (food <= 0)
-    warnings.push({ text: "Nemáš co jíst — každý den bez jídla bere energii.", tone: "danger" });
-  else if (food <= 2) warnings.push({ text: `Jídlo jen na ${food} dny.`, tone: "warn" });
+    warnings.push({ text: "Nothing to eat — every day without food drains your energy.", tone: "danger" });
+  else if (food <= 2) warnings.push({ text: `Only ${food} days of food left.`, tone: "warn" });
   if (lateDays > 0)
-    warnings.push({ text: "Nájem po splatnosti. Hrozí vystěhování.", tone: "danger" });
+    warnings.push({ text: "Rent is overdue. Eviction is coming.", tone: "danger" });
   if (energy < 30 && food > 0)
-    warnings.push({ text: "Jsi vyčerpaný, práce vynáší málo. Odškrtni návyky.", tone: "warn" });
+    warnings.push({ text: "You are exhausted and work pays little. Tick off some habits.", tone: "warn" });
 
   if (warnings.length === 0) return null;
 

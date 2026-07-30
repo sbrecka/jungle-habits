@@ -31,9 +31,9 @@ export default function TodayPanel({ onOpenWork }: { onOpenWork: () => void }) {
             <Plus />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm text-text">Zapiš si dnešní práci</span>
+            <span className="block text-sm text-text">Write down today's work</span>
             <span className="block text-[11px] text-dim">
-              Za hotové úkoly se platí — jinak nebude na nájem
+              Finished tasks pay — otherwise there is no rent money
             </span>
           </span>
         </button>
@@ -44,12 +44,12 @@ export default function TodayPanel({ onOpenWork }: { onOpenWork: () => void }) {
   return (
     <div className="space-y-1.5 px-3 py-2">
       <div className="flex items-baseline gap-2">
-        <span className="font-display text-xs uppercase tracking-wide text-dim">Dnes</span>
+        <span className="font-display text-xs uppercase tracking-wide text-dim">Today</span>
         <span className="text-[11px] text-dim">
-          {doneCount} hotovo · {open.length} zbývá
+          {doneCount} done · {open.length} left
         </span>
         <button onClick={onOpenWork} className="ml-auto text-[11px] text-blue active:scale-95">
-          Vše
+          All
         </button>
       </div>
 
@@ -60,7 +60,7 @@ export default function TodayPanel({ onOpenWork }: { onOpenWork: () => void }) {
         >
           <button
             onClick={() => toggleTask(t.id)}
-            aria-label={`Hotovo: ${t.title}`}
+            aria-label={`Done: ${t.title}`}
             className="grid h-6 w-6 shrink-0 place-items-center rounded border text-transparent active:scale-95"
             style={{ borderColor: SIZE_COLOR[t.size] }}
           >
@@ -76,7 +76,7 @@ export default function TodayPanel({ onOpenWork }: { onOpenWork: () => void }) {
 
       {open.length > shown.length && (
         <Btn variant="ghost" onClick={onOpenWork} className="w-full !py-1.5 !text-[11px]">
-          + {open.length - shown.length} dalších
+          + {open.length - shown.length} more
         </Btn>
       )}
     </div>

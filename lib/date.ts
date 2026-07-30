@@ -31,7 +31,7 @@ export function daysBetween(a: string, b: string): number {
 }
 
 export function formatDay(k: string): string {
-  return parseKey(k).toLocaleDateString("cs-CZ", {
+  return parseKey(k).toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long"
@@ -39,7 +39,7 @@ export function formatDay(k: string): string {
 }
 
 export function formatDayShort(k: string): string {
-  return parseKey(k).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric" });
+  return parseKey(k).toLocaleDateString("en-GB", { day: "numeric", month: "numeric" });
 }
 
 export function msToMidnight(now: Date = new Date()): number {

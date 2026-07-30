@@ -34,10 +34,10 @@ export default function TopBar() {
     lateDays > 0 ? "text-danger" : rentIn <= 1 ? "text-warn" : "text-dim";
   const rentText =
     lateDays > 0
-      ? `PO SPLATNOSTI ${lateDays}/${RENT_GRACE_DAYS}`
+      ? `OVERDUE ${lateDays}/${RENT_GRACE_DAYS}`
       : rentIn <= 0
-        ? "nájem dnes"
-        : `nájem za ${rentIn} d`;
+        ? "rent due today"
+        : `rent in ${rentIn}d`;
 
   return (
     <div className="border-b border-line bg-panel px-3 py-2">
@@ -47,7 +47,7 @@ export default function TopBar() {
 
         <button
           onClick={() => setNight(!night)}
-          aria-label={night ? "Rozsvítit den" : "Zhasnout na noc"}
+          aria-label={night ? "Switch to day" : "Switch to night"}
           className="ml-auto grid h-7 w-7 place-items-center rounded border border-line text-dim active:scale-95"
         >
           <MoonSun night={night} />
@@ -56,7 +56,7 @@ export default function TopBar() {
 
       <div className="mt-1 flex items-center gap-2 text-[11px] text-dim">
         <span>
-          Majetek <span className="text-text">{formatMoneyShort(worth)}</span>
+          Net worth <span className="text-text">{formatMoneyShort(worth)}</span>
         </span>
         <span className="text-line">•</span>
         <span className="truncate">{housing(tier).name}</span>
@@ -94,10 +94,10 @@ export default function TopBar() {
           className={`flex shrink-0 items-center gap-1 text-[11px] ${
             food <= 0 ? "text-danger" : food <= 2 ? "text-warn" : "text-dim"
           }`}
-          title="Zásoby jídla ve dnech"
+          title="Days of food left"
         >
           <Food />
-          {food} d
+          {food}d
         </div>
       </div>
 

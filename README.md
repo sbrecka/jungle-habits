@@ -1,49 +1,59 @@
-# Grind — od nuly k milionu
+# Grind — from nothing to a million
 
-Izometrická pixel-art hra, ve které tvoje kopie sedí u počítače. Vydělává jen
-tím, co reálně odpracuješ ty: zapíšeš si úkoly, odškrtneš je, a z těch peněz
-platíš jídlo a nájem. Co zbyde, jde do vybavení, nábytku a lepšího bydlení —
-od sklepního kutlochu až po vilu u moře.
+An isometric pixel-art game where your double sits at a computer. They earn only
+from the work you actually do: write down your tasks, tick them off, and that
+money is what pays for food and rent. Whatever is left goes into gear, furniture
+and a better place to live — from a basement room to a seaside villa.
 
-Postaveno na Next.js 14 (App Router), zustand s ukládáním do `localStorage`
-a vlastním pixel/izometrickém rendereru nad `<canvas>`.
+Built with Next.js 14 (App Router), zustand persisted to `localStorage`, and a
+hand-rolled pixel/isometric renderer on a `<canvas>`.
 
-## Jak se to hraje
+## How it plays
 
-- **Úkoly** (`Práce`) jsou tvoje skutečná práce. Malý / střední / velký úkol
-  platí různě. Výplata se násobí kariérní úrovní, vybavením a energií.
-- **Zakázky** mají termín a velkou odměnu. Každý hotový úkol na ní odvede 1–3
-  díly. Nedodržený termín stojí reputaci, reputace odemyká větší zakázky.
-- **Návyky** (`Návyky`) nedávají peníze přímo — dávají energii, a ta násobí
-  každou výplatu. Vyčerpaný člověk vydělá zlomek toho, co odpočatý.
-- **Jídlo a nájem** se platí samy, v čase. Nájem každých 7 dní.
-- **Tvrdá pravidla:** dva dny po splatnosti nájmu následuje vystěhování o
-  úroveň níž a přijdeš o věci, které se do menšího nevejdou. Tři dny bez jídla
-  a musíš něco prodat, abys měl co jíst.
-- **Cíl:** čistý majetek jeden milion.
+- **Tasks** (`Work`) are your real work. Small, medium and large tasks pay
+  differently. Every payout is multiplied by your career level, the gear you own
+  and your current energy.
+- **Jobs** have a deadline and a large payout. Each finished task delivers 1–3
+  units toward one. Missing a deadline costs reputation, and reputation is what
+  unlocks bigger jobs.
+- **Habits** (`Habits`) pay nothing directly — they restore energy, and energy
+  multiplies every payout. Exhausted, you earn a fraction of what you would
+  rested.
+- **Food and rent** are charged over time. Rent falls due every 7 days.
+- **The harsh part:** two days past due on rent and you are evicted a tier down,
+  losing anything that will not fit somewhere smaller. Three days without food
+  and you have to sell something to eat.
+- **The goal:** a net worth of one million.
 
-Dny se dopočítávají i když je appka zavřená — po návratu dostaneš přehled, co
-se mezitím stalo. Delší absence je zastropovaná: nikdy nepřijdeš o víc než
-jedno vystěhování a tři věci.
+Days that pass while the app is closed are simulated when you come back, along
+with a report of what happened. A long absence is capped: you can never lose
+more than one eviction and three possessions to it.
 
-## Vývoj
+Money stays in Czech koruna — the economy is calibrated to Czech prices, and the
+million only means something at that scale.
+
+## Development
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Struktura
+Run `npm run build` only with the dev server stopped; both write to `.next` and
+a production build will pull the chunks out from under a running dev server.
 
-| Cesta | Co v tom je |
+## Structure
+
+| Path | What lives there |
 | --- | --- |
-| `lib/store.ts` | Celý stav a pravidla hry včetně dopočítávání dnů |
-| `lib/constants.ts` | Ekonomika — ceny, výplaty, bydlení, katalog obchodu |
-| `lib/pixel.ts` | Pixel-art engine: sprity jako mřížka znaků + paleta |
-| `lib/iso.ts` | Izometrické primitivy (dlaždice, kvádry, stěny) |
-| `lib/isoSprites.ts` | Sprity postavy, obrazovek a věcí na zdech |
-| `lib/isoScene.ts` | Skládání pokoje — paleta a rozvržení podle úrovně bydlení |
-| `components/` | UI: pokoj, horní lišta, obrazovky práce / návyků / obchodu / bydlení |
+| `lib/store.ts` | All game state and rules, including the elapsed-day catch-up |
+| `lib/constants.ts` | The economy — prices, payouts, housing, shop catalogue |
+| `lib/pixel.ts` | Pixel engine: sprites as character grids plus a palette |
+| `lib/iso.ts` | Isometric primitives (tiles, extruded boxes, walls) |
+| `lib/isoSprites.ts` | Sprites for the character, screens and wall fittings |
+| `lib/isoScene.ts` | Room composition — palette and layout per housing tier |
+| `lib/backup.ts` | Export and import of a save |
+| `components/` | UI: the room, top bar, work / habits / shop / home screens |
 
-Postup se ukládá lokálně v prohlížeči pod klíčem `grind-v1`. `Bydlení →
-Začít znovu od nuly` ho smaže.
+Progress is stored locally in the browser under the key `grind-v1`. Back it up
+from **Home → Back up your progress**; **Start again from nothing** wipes it.

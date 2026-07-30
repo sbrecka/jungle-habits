@@ -20,7 +20,7 @@ export default function Page() {
   if (!mounted) {
     return (
       <main className="grid h-dvh place-items-center bg-bg">
-        <p className="font-display text-lg text-dim">Nahrávám…</p>
+        <p className="font-display text-lg text-dim">Loading…</p>
       </main>
     );
   }

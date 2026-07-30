@@ -293,9 +293,9 @@ export const useGame = create<GameState>()(
               ledger.unshift({
                 ts: Date.now(),
                 delta: contract.payout,
-                reason: `Zakázka: ${contract.title}`
+                reason: `Job: ${contract.title}`
               });
-              extraToast = ` Zakázka hotová! +${formatMoney(contract.payout)}`;
+              extraToast = ` Job complete! +${formatMoney(contract.payout)}`;
               contract = null;
             } else {
               contract = { ...contract, delivered };
@@ -325,7 +325,7 @@ export const useGame = create<GameState>()(
                 ? { ...s.contract, delivered: Math.max(0, s.contract.delivered - units) }
                 : s.contract,
             ledger: [
-              { ts: Date.now(), delta: -pay, reason: `Vráceno: ${task.title}` },
+              { ts: Date.now(), delta: -pay, reason: `Reverted: ${task.title}` },
               ...s.ledger
             ].slice(0, 40)
           });
@@ -353,7 +353,7 @@ export const useGame = create<GameState>()(
           )
         });
         get().addXPInternal(wasDone ? -XP_PER_HABIT : XP_PER_HABIT);
-        if (!wasDone) set({ toast: `${habit.title} ✓  +${habit.energy} energie` });
+        if (!wasDone) set({ toast: `${habit.title} ✓  +${habit.energy} energy` });
       },
 
       addHabit: (title, energy) => {
@@ -374,7 +374,7 @@ export const useGame = create<GameState>()(
       acceptOffer: (id) => {
         const s = get();
         if (s.contract && s.contract.state === "active") {
-          set({ toast: "Nejdřív dokonči rozdělanou zakázku." });
+          set({ toast: "Finish the job you're already on first." });
           return;
         }
         const offer = s.offers.find((o) => o.id === id);
@@ -392,7 +392,7 @@ export const useGame = create<GameState>()(
             state: "active"
           },
           offers: s.offers.filter((o) => o.id !== id),
-          toast: `Zakázka přijata: ${offer.title}`
+          toast: `Job accepted: ${offer.title}`
         });
       },
 
@@ -404,7 +404,7 @@ export const useGame = create<GameState>()(
         set({
           contract: null,
           reputation: Math.max(0, s.reputation - REP_ON_FAIL),
-          toast: `Zakázka zrušena. Reputace −${REP_ON_FAIL}.`
+          toast: `Job dropped. Reputation −${REP_ON_FAIL}.`
         });
       },
 
@@ -416,15 +416,15 @@ export const useGame = create<GameState>()(
         if (!item) return;
 
         if ((item.minHousing ?? 0) > s.housingTier) {
-          set({ toast: `Tohle se ti sem nevejde — potřebuješ lepší bydlení.` });
+          set({ toast: `This won't fit in here — you need a better place.` });
           return;
         }
         if (item.category !== "food" && s.owned[itemId]) {
-          set({ toast: "To už máš." });
+          set({ toast: "You already own that." });
           return;
         }
         if (s.money < item.price) {
-          set({ toast: "Na to nemáš. Odškrtni si nějakou práci." });
+          set({ toast: "You can't afford that. Go get some work done." });
           return;
         }
 
@@ -440,14 +440,14 @@ export const useGame = create<GameState>()(
             energy: Math.min(ENERGY_MAX, s.energy + (item.energy ?? 0)),
             starveDays: 0,
             ledger: ledger.slice(0, 40),
-            toast: `${item.name} — zásoby na ${s.food + (item.foodDays ?? 0)} dní`
+            toast: `${item.name} — ${s.food + (item.foodDays ?? 0)} days of food in`
           });
         } else {
           set({
             money: s.money - item.price,
             owned: { ...s.owned, [itemId]: true },
             ledger: ledger.slice(0, 40),
-            toast: `${item.name} koupeno!`
+            toast: `${item.name} bought!`
           });
         }
         get().checkMillionaire();
@@ -457,13 +457,13 @@ export const useGame = create<GameState>()(
         const s = get();
         const next = s.housingTier + 1;
         if (next >= HOUSING.length) {
-          set({ toast: "Bydlíš na maximu. Gratuluju." });
+          set({ toast: "You're already at the top. Congratulations." });
           return;
         }
         const target = HOUSING[next];
         if (s.money < target.price) {
           // Housing names aren't declined, so the wording avoids needing a case.
-          set({ toast: `${target.name} stojí ${formatMoney(target.price)}.` });
+          set({ toast: `${target.name} costs ${formatMoney(target.price)}.` });
           return;
         }
         set({
@@ -472,10 +472,10 @@ export const useGame = create<GameState>()(
           rentDue: keyPlusDays(dateKey(), RENT_PERIOD_DAYS),
           lateDays: 0,
           ledger: [
-            { ts: Date.now(), delta: -target.price, reason: `Přestěhování: ${target.name}` },
+            { ts: Date.now(), delta: -target.price, reason: `Moved in: ${target.name}` },
             ...s.ledger
           ].slice(0, 40),
-          toast: `Stěhuješ se! Nové bydlení: ${target.name}`
+          toast: `You're moving! New place: ${target.name}`
         });
         get().checkMillionaire();
       },
@@ -484,7 +484,7 @@ export const useGame = create<GameState>()(
         const s = get();
         const rent = housing(s.housingTier).rent;
         if (s.money < rent) {
-          set({ toast: `Nájem je ${formatMoney(rent)} a ty máš ${formatMoney(s.money)}.` });
+          set({ toast: `Rent is ${formatMoney(rent)} and you have ${formatMoney(s.money)}.` });
           return;
         }
         const today = dateKey();
@@ -494,24 +494,24 @@ export const useGame = create<GameState>()(
           rentDue: keyPlusDays(base, RENT_PERIOD_DAYS),
           lateDays: 0,
           ledger: [
-            { ts: Date.now(), delta: -rent, reason: "Nájem" },
+            { ts: Date.now(), delta: -rent, reason: "Rent" },
             ...s.ledger
           ].slice(0, 40),
-          toast: `Nájem zaplacen — klid na ${RENT_PERIOD_DAYS} dní.`
+          toast: `Rent paid — you're clear for ${RENT_PERIOD_DAYS} days.`
         });
       },
 
       eat: () => {
         const s = get();
         if (s.food <= 0) {
-          set({ toast: "Nemáš žádné jídlo. Kup něco v obchodě." });
+          set({ toast: "You have no food at all. Buy some in the shop." });
           return;
         }
         set({
           food: s.food - 1,
           energy: Math.min(ENERGY_MAX, s.energy + 10),
           starveDays: 0,
-          toast: "Najedl jsi se. +10 energie"
+          toast: "You ate. +10 energy"
         });
       },
 
@@ -560,7 +560,7 @@ export const useGame = create<GameState>()(
           } else {
             starveDays += 1;
             energy -= STARVE_ENERGY;
-            events.push({ kind: "starve", day, text: "Celý den bez jídla." });
+            events.push({ kind: "starve", day, text: "A whole day with nothing to eat." });
           }
           energy = Math.max(0, Math.min(ENERGY_MAX, Math.round(energy)));
 
@@ -577,7 +577,7 @@ export const useGame = create<GameState>()(
               events.push({
                 kind: "seized",
                 day,
-                text: `Prodal jsi ${sell.name} za ${formatMoney(got)}, aby bylo co jíst.`
+                text: `You sold your ${sell.name} for ${formatMoney(got)} just to eat.`
               });
             }
           }
@@ -589,14 +589,14 @@ export const useGame = create<GameState>()(
               money -= rent;
               rentDue = keyPlusDays(day, RENT_PERIOD_DAYS);
               lateDays = 0;
-              events.push({ kind: "rent", day, text: `Nájem ${formatMoney(rent)} zaplacen.` });
+              events.push({ kind: "rent", day, text: `Rent of ${formatMoney(rent)} paid.` });
             } else {
               lateDays += 1;
               if (lateDays <= RENT_GRACE_DAYS) {
                 events.push({
                   kind: "rent",
                   day,
-                  text: `Nájem nezaplacen — ${lateDays}. den odkladu z ${RENT_GRACE_DAYS}.`
+                  text: `Rent unpaid — day ${lateDays} of ${RENT_GRACE_DAYS} grace.`
                 });
               } else if (evictions < MAX_EVICTIONS_PER_CATCHUP) {
                 const from = housing(housingTier).name;
@@ -618,8 +618,8 @@ export const useGame = create<GameState>()(
                   kind: "evict",
                   day,
                   text:
-                    `Vystěhován: ${from} → ${housing(housingTier).name}.` +
-                    (lost.length ? ` Nevešlo se: ${lost.join(", ")}.` : "")
+                    `Evicted: ${from} → ${housing(housingTier).name}.` +
+                    (lost.length ? ` Left behind: ${lost.join(", ")}.` : "")
                 });
               } else {
                 // Eviction cap reached. Reset the rent clock too — otherwise
@@ -637,7 +637,7 @@ export const useGame = create<GameState>()(
             events.push({
               kind: "contract",
               day,
-              text: `Zakázka „${contract.title}" propadla. Reputace −${REP_ON_FAIL}.`
+              text: `Job "${contract.title}" missed its deadline. Reputation −${REP_ON_FAIL}.`
             });
             contract = null;
           }
@@ -654,7 +654,7 @@ export const useGame = create<GameState>()(
           events.unshift({
             kind: "info",
             day: today,
-            text: `Byl jsi pryč ${gap} dní. Hra dopočítala ${simulate} z nich, zbytek ti odpustila.`
+            text: `You were away ${gap} days. The game counted ${simulate} of them and wrote off the rest.`
           });
         }
 

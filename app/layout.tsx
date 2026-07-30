@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Grind — od nuly k milionu",
+  title: "Grind — from nothing to a million",
   description:
-    "Pixelová hra, kde tvoje kopie sedí u počítače. Odvedeš reálnou práci, ona z ní žije, platí nájem a stěhuje se výš."
+    "A pixel game where your double sits at a desk. You do the real work; they live on it, pay the rent and move up in the world."
 };
 
 export const viewport: Viewport = {
@@ -16,9 +16,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="cs">
+    <html lang="en">
       <head>
-        {/* Pixel display font with full Czech diacritics; falls back to mono. */}
+        {/* Pixel display font; falls back to a monospace stack. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

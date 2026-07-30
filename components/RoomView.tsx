@@ -59,7 +59,7 @@ export default function RoomView() {
       ref={canvasRef}
       width={size.w}
       height={size.h}
-      aria-label="Tvůj pokoj"
+      aria-label="Your room"
       className="block w-full"
       style={{ imageRendering: "pixelated" }}
     />

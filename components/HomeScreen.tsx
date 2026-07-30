@@ -33,26 +33,26 @@ export default function HomeScreen({ onClose }: { onClose: () => void }) {
   const rentIn = daysBetween(dateKey(), rentDue);
 
   return (
-    <Sheet title="Bydlení a majetek" subtitle={formatMoneyShort(worth)} onClose={onClose}>
+    <Sheet title="Home and assets" subtitle={formatMoneyShort(worth)} onClose={onClose}>
       {/* ---- net worth ---- */}
       <Panel className="mb-3">
         <div className="flex items-baseline gap-2">
-          <span className="text-[11px] text-dim">Čistý majetek</span>
-          {millionaire && <Chip tone="gold">milionář</Chip>}
+          <span className="text-[11px] text-dim">Net worth</span>
+          {millionaire && <Chip tone="gold">millionaire</Chip>}
         </div>
         <p className="font-display text-2xl leading-tight text-gold">{formatMoney(worth)}</p>
         <div className="mt-2">
           <Bar value={worth} max={MILLION_GOAL} colour="#e0a53c" height={7} />
           <p className="mt-1 text-[11px] text-dim">
             {millionaire
-              ? "Cíl milionu splněn. Zbývá vila u moře."
-              : `${Math.floor((worth / MILLION_GOAL) * 100)} % k prvnímu milionu`}
+              ? "Million reached. The seaside villa is what is left."
+              : `${Math.floor((worth / MILLION_GOAL) * 100)}% of the way to your first million`}
           </p>
         </div>
         <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-          <Stat label="Hotovost" value={formatMoneyShort(money)} />
-          <Stat label="Věci" value={formatMoneyShort(ownedValue(owned))} />
-          <Stat label="Vyděláno" value={formatMoneyShort(totalEarned)} />
+          <Stat label="Cash" value={formatMoneyShort(money)} />
+          <Stat label="Possessions" value={formatMoneyShort(ownedValue(owned))} />
+          <Stat label="Earned" value={formatMoneyShort(totalEarned)} />
         </div>
       </Panel>
 
@@ -60,19 +60,19 @@ export default function HomeScreen({ onClose }: { onClose: () => void }) {
       <Panel className={`mb-3 ${lateDays > 0 ? "border-danger/50" : ""}`}>
         <div className="flex items-center gap-2">
           <span className="text-sm text-text">{current.name}</span>
-          {lateDays > 0 && <Chip tone="danger">po splatnosti</Chip>}
+          {lateDays > 0 && <Chip tone="danger">overdue</Chip>}
         </div>
         <p className="mt-0.5 text-[11px] leading-snug text-dim">{current.desc}</p>
 
         <div className="mt-2 flex items-center justify-between text-[11px]">
           <span className="text-dim">
-            Nájem <span className="text-text">{formatMoney(current.rent)}</span> každých{" "}
-            {RENT_PERIOD_DAYS} dní
+            Rent <span className="text-text">{formatMoney(current.rent)}</span> every{" "}
+            {RENT_PERIOD_DAYS} days
           </span>
           <span className={lateDays > 0 ? "text-danger" : rentIn <= 1 ? "text-warn" : "text-dim"}>
             {lateDays > 0
-              ? `${lateDays}/${RENT_GRACE_DAYS} dní odkladu`
-              : `splatný ${formatDayShort(rentDue)}`}
+              ? `day ${lateDays} of ${RENT_GRACE_DAYS} grace`
+              : `due ${formatDayShort(rentDue)}`}
           </span>
         </div>
 
@@ -82,32 +82,32 @@ export default function HomeScreen({ onClose }: { onClose: () => void }) {
           disabled={money < current.rent}
           className="mt-2 w-full"
         >
-          Zaplatit nájem {formatMoneyShort(current.rent)}
+          Pay rent {formatMoneyShort(current.rent)}
         </Btn>
 
         {lateDays > 0 && (
           <p className="mt-2 text-[11px] leading-snug text-danger">
-            Zaplať do {RENT_GRACE_DAYS - lateDays + 1} dní, jinak tě vystěhují o úroveň níž a
-            přijdeš o věci, které se do menšího nevejdou.
+            Pay within {RENT_GRACE_DAYS - lateDays + 1} days or you are evicted a tier down and
+            lose anything that will not fit somewhere smaller.
           </p>
         )}
       </Panel>
 
       {/* ---- moving up ---- */}
-      <h3 className="mb-2 mt-4 font-display text-sm text-dim">Lepší bydlení</h3>
+      <h3 className="mb-2 mt-4 font-display text-sm text-dim">Moving up</h3>
       {next ? (
         <Panel>
           <div className="flex items-center gap-2">
             <span className="text-sm text-text">{next.name}</span>
-            <Chip tone="dim">nájem {formatMoneyShort(next.rent)}</Chip>
+            <Chip tone="dim">rent {formatMoneyShort(next.rent)}</Chip>
           </div>
           <p className="mt-0.5 text-[11px] leading-snug text-dim">{next.desc}</p>
           <div className="mt-2">
             <Bar value={money} max={next.price} colour="#6fb1d9" height={6} />
             <p className="mt-1 text-[11px] text-dim">
               {money >= next.price
-                ? "Máš na to."
-                : `Chybí ${formatMoney(next.price - money)}`}
+                ? "You can afford it."
+                : `${formatMoney(next.price - money)} short`}
             </p>
           </div>
           <Btn
@@ -116,11 +116,11 @@ export default function HomeScreen({ onClose }: { onClose: () => void }) {
             disabled={money < next.price}
             className="mt-2 w-full"
           >
-            Přestěhovat se za {formatMoneyShort(next.price)}
+            Move in for {formatMoneyShort(next.price)}
           </Btn>
         </Panel>
       ) : (
-        <EmptyState>Bydlíš na maximu. Vila u moře je tvoje.</EmptyState>
+        <EmptyState>You are at the top. The seaside villa is yours.</EmptyState>
       )}
 
       {/* ---- all tiers ---- */}
@@ -144,9 +144,9 @@ export default function HomeScreen({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* ---- ledger ---- */}
-      <h3 className="mb-2 mt-6 font-display text-sm text-dim">Poslední pohyby</h3>
+      <h3 className="mb-2 mt-6 font-display text-sm text-dim">Recent activity</h3>
       {ledger.length === 0 ? (
-        <EmptyState>Zatím žádné pohyby.</EmptyState>
+        <EmptyState>Nothing yet.</EmptyState>
       ) : (
         <div className="space-y-1">
           {ledger.slice(0, 20).map((e, i) => (
@@ -169,11 +169,11 @@ export default function HomeScreen({ onClose }: { onClose: () => void }) {
       <Btn
         variant="ghost"
         onClick={() => {
-          if (confirm("Smazat veškerý postup a začít znovu od nuly?")) resetAllData();
+          if (confirm("Delete all progress and start again from nothing?")) resetAllData();
         }}
         className="mt-3 w-full !text-[11px]"
       >
-        Začít znovu od nuly
+        Start again from nothing
       </Btn>
     </Sheet>
   );
