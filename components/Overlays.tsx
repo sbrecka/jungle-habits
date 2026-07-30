@@ -96,6 +96,27 @@ const KIND_STYLE: Record<string, { colour: string; label: string }> = {
   info: { colour: "text-dim", label: "Info" }
 };
 
+interface GroupedEvent {
+  kind: string;
+  text: string;
+  day: string;
+  count: number;
+}
+
+/**
+ * A three-week absence produces one "no food today" line per day. Collapse
+ * identical lines so the report stays readable.
+ */
+function groupEvents(report: GameEvent[]): GroupedEvent[] {
+  const out: GroupedEvent[] = [];
+  for (const e of report) {
+    const hit = out.find((g) => g.kind === e.kind && g.text === e.text);
+    if (hit) hit.count += 1;
+    else out.push({ kind: e.kind, text: e.text, day: e.day, count: 1 });
+  }
+  return out;
+}
+
 export function DayReport() {
   const report = useGame((s) => s.report);
   const dismiss = useGame((s) => s.dismissReport);
@@ -113,17 +134,18 @@ export function DayReport() {
             {bad ? "Zatímco jsi nepracoval…" : "Co se stalo mezitím"}
           </h2>
           <p className="mt-1 text-[11px] text-dim">
-            Svět běžel dál. Teď bydlíš v {housing(tier).name}.
+            Svět běžel dál. Nové bydlení: {housing(tier).name}.
           </p>
         </div>
 
         <div className="thin-scroll flex-1 space-y-1.5 overflow-y-auto p-3">
-          {report.map((e: GameEvent, i) => {
+          {groupEvents(report).map((e, i) => {
             const st = KIND_STYLE[e.kind] ?? KIND_STYLE.info;
             return (
               <div key={i} className="rounded border border-line/60 px-2 py-1.5">
                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide">
                   <span className={st.colour}>{st.label}</span>
+                  {e.count > 1 && <span className="text-dim">{e.count}×</span>}
                   <span className="ml-auto text-dim">{formatDayShort(e.day)}</span>
                 </div>
                 <p className="mt-0.5 text-[12px] leading-snug text-text">{e.text}</p>

@@ -590,7 +590,13 @@ export const useGame = create<GameState>()(
               events.push({ kind: "rent", day, text: `Nájem ${formatMoney(rent)} zaplacen.` });
             } else {
               lateDays += 1;
-              if (lateDays > RENT_GRACE_DAYS && evictions < MAX_EVICTIONS_PER_CATCHUP) {
+              if (lateDays <= RENT_GRACE_DAYS) {
+                events.push({
+                  kind: "rent",
+                  day,
+                  text: `Nájem nezaplacen — ${lateDays}. den odkladu z ${RENT_GRACE_DAYS}.`
+                });
+              } else if (evictions < MAX_EVICTIONS_PER_CATCHUP) {
                 const from = housing(housingTier).name;
                 housingTier = Math.max(0, housingTier - 1);
                 const lost: string[] = [];
@@ -604,19 +610,21 @@ export const useGame = create<GameState>()(
                 evictions += 1;
                 lateDays = 0;
                 rentDue = keyPlusDays(day, RENT_PERIOD_DAYS);
+                // Housing names can't be declined generically in Czech, so the
+                // wording avoids needing a case at all.
                 events.push({
                   kind: "evict",
                   day,
                   text:
-                    `Vystěhován z ${from} → ${housing(housingTier).name}.` +
+                    `Vystěhován: ${from} → ${housing(housingTier).name}.` +
                     (lost.length ? ` Nevešlo se: ${lost.join(", ")}.` : "")
                 });
-              } else if (lateDays <= RENT_GRACE_DAYS) {
-                events.push({
-                  kind: "rent",
-                  day,
-                  text: `Nájem nezaplacen — ${lateDays}. den odkladu z ${RENT_GRACE_DAYS}.`
-                });
+              } else {
+                // Eviction cap reached. Reset the rent clock too — otherwise
+                // lateDays keeps climbing through the whole absence and the
+                // next day's catch-up evicts instantly, with no grace period.
+                lateDays = 0;
+                rentDue = keyPlusDays(day, RENT_PERIOD_DAYS);
               }
             }
           }
@@ -634,10 +642,17 @@ export const useGame = create<GameState>()(
         }
 
         if (gap > simulate) {
+          // The simulation runs forward from lastDay, so these are the first
+          // `simulate` days of the absence, not the most recent ones. The days
+          // we skipped are genuinely forgiven — including any rent that fell in
+          // them, otherwise rentDue stays in the past and you come back already
+          // in arrears with no chance to act.
+          rentDue = keyPlusDays(today, RENT_PERIOD_DAYS);
+          lateDays = 0;
           events.unshift({
             kind: "info",
             day: today,
-            text: `Byl jsi pryč ${gap} dní. Započítalo se posledních ${simulate}.`
+            text: `Byl jsi pryč ${gap} dní. Hra dopočítala ${simulate} z nich, zbytek ti odpustila.`
           });
         }
 
