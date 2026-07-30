@@ -30,7 +30,9 @@ import {
   CURTAIN,
   CUSHION,
   DOOR,
+  HEADPHONES_ON,
   KEYBOARD_ISO,
+  KEYBOARD_MECH,
   LAMP,
   LAPTOP_ISO,
   MONITOR_BACK,
@@ -60,6 +62,8 @@ const ROOM_SIZE: [number, number][] = [
 const MARGIN = 6;
 const CAP_H = 3;
 const DESK_H = 13;
+/** A sit-stand desk rides higher and swaps the wooden frame for metal. */
+const DESK_H_STANDING = 18;
 
 /** Every piece of furniture is outlined in this, so nothing blurs together. */
 const EDGE = "#1b1922";
@@ -413,19 +417,28 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
     drawOnTile(ctx, v, CHAR_BLINK, L.char[0], L.char[1], 1, charDY - spriteHeight(CHAR) + 10);
   }
 
+  // Headphones sit over the top of the head (sprite row 1 down).
+  if (owned.headphones) {
+    const dy = charDY - spriteHeight(CHAR) + 1 + spriteHeight(HEADPHONES_ON);
+    drawOnTile(ctx, v, HEADPHONES_ON, L.char[0], L.char[1], 0, dy);
+  }
+
   // ---- desk, with a drawer front and two handles
+  const deskH = owned.standingdesk ? DESK_H_STANDING : DESK_H;
   {
     const [i, j] = L.desk;
-    box(ctx, v, i, j, L.deskW, 1, DESK_H, {
+    box(ctx, v, i, j, L.deskW, 1, deskH, {
       top: tier >= 2 ? "#a5743f" : "#8a5a34",
-      left: "#4e3117",
-      right: "#68432a",
+      left: owned.standingdesk ? "#33363d" : "#4e3117",
+      right: owned.standingdesk ? "#43464e" : "#68432a",
       edge: EDGE
     });
-    faceLineSW(ctx, v, i, j, L.deskW, 1, DESK_H - 3, "#3f2712");
-    // `along` counts 2px steps and the face is deskW * 8 steps long.
-    faceDotSW(ctx, v, i, j, 1, 5, DESK_H - 7, "#d9b477", 2);
-    faceDotSW(ctx, v, i, j, 1, 11, DESK_H - 7, "#d9b477", 2);
+    faceLineSW(ctx, v, i, j, L.deskW, 1, deskH - 3, owned.standingdesk ? "#22252b" : "#3f2712");
+    if (!owned.standingdesk) {
+      // `along` counts 2px steps and the face is deskW * 8 steps long.
+      faceDotSW(ctx, v, i, j, 1, 5, deskH - 7, "#d9b477", 2);
+      faceDotSW(ctx, v, i, j, 1, 11, deskH - 7, "#d9b477", 2);
+    }
   }
 
   // ---- on the desk. `-DESK_H - 8` lands things mid-tile on the desk top
@@ -433,7 +446,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   const midI = L.desk[0];
   const sideI = L.desk[0] + 1;
   const deskJ = L.desk[1];
-  const onDesk = -DESK_H - 8;
+  const onDesk = -deskH - 8;
 
   if (owned.ultrawide || owned.monitor2) {
     drawOnTile(ctx, v, MONITOR_BACK, midI, deskJ, 0, onDesk);
@@ -447,14 +460,14 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   if (owned.laptop) drawOnTile(ctx, v, LAPTOP_ISO, sideI, deskJ, 4, onDesk + 4);
 
   // keyboard lies flat in front of the screen
-  drawOnTile(ctx, v, KEYBOARD_ISO, midI, deskJ, 0, -DESK_H - 1);
+  drawOnTile(ctx, v, owned.keyboard ? KEYBOARD_MECH : KEYBOARD_ISO, midI, deskJ, 0, -deskH - 1);
 
   drawOnTile(ctx, v, MUG, sideI, deskJ, 8, onDesk + 8);
   if (owned.lamp) drawOnTile(ctx, v, LAMP, sideI, deskJ, -2, onDesk);
 
   // ---- light
   const sx = isoX(v, midI, deskJ);
-  const sy = isoY(v, midI, deskJ) - DESK_H - 6;
+  const sy = isoY(v, midI, deskJ) - deskH - 6;
   glow(ctx, sx, sy, 30, night ? "rgba(120,180,235,0.20)" : "rgba(150,195,235,0.10)");
   if (owned.lamp) {
     glow(ctx, isoX(v, sideI, deskJ), sy, 24, "rgba(255,220,140,0.16)");

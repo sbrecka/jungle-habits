@@ -57,23 +57,6 @@ export function tile(
   }
 }
 
-/** Thin outline along the two near edges of a tile — used for rug borders. */
-export function tileEdge(
-  ctx: CanvasRenderingContext2D,
-  v: View,
-  i: number,
-  j: number,
-  colour: string
-): void {
-  const cx = isoX(v, i, j);
-  const cy = isoY(v, i, j);
-  ctx.fillStyle = colour;
-  for (let k = 0; k < HTW; k++) {
-    ctx.fillRect(cx + k * 2, cy + HTH + k, 2, 1);
-    ctx.fillRect(cx - 2 - k * 2, cy + HTH + k, 2, 1);
-  }
-}
-
 export interface BoxPal {
   top: string;
   left: string;

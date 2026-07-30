@@ -165,6 +165,36 @@ export const KEYBOARD_ISO = S("keyboard-iso", [
   ".....oooooooo"
 ]);
 
+/** Same board, amber keycaps — so the mechanical upgrade is visible. */
+export const KEYBOARD_MECH = S(
+  "keyboard-mech",
+  [
+    ".....oooooooooo",
+    "...oooGGGGGGGGGooo",
+    ".ooGGGGGGGGGGGGGGGo",
+    "oGGyGyGyGyGyGyGyGGo",
+    "oGGGGGGGGGGGGGGGGGo",
+    ".ooGGGGGGGGGGGGGoo",
+    "...oooGGGGGGGooo",
+    ".....oooooooo"
+  ],
+  { G: "#2b2e35", y: "#e0a53c" }
+);
+
+/** Worn on the head, drawn over the character. */
+export const HEADPHONES_ON = S("headphones-on", [
+  "....oooooooo",
+  "..ooGGGGGGGGoo",
+  ".oGGoooooooooGGo",
+  "oGGo.........oGGo",
+  "oGGo.........oGGo",
+  "oGGGo.......oGGGo",
+  "oGGGo.......oGGGo",
+  "oGGGo.......oGGGo",
+  ".oGGo.......oGGo",
+  "..oo.........oo"
+], { G: "#3a3d45" });
+
 export const LAPTOP_ISO = S("laptop-iso", [
   "..oooooooooooooooo",
   "..obbbbbbbbbbbbbbo",

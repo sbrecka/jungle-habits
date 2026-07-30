@@ -85,7 +85,7 @@ export default function ShopScreen({ onClose }: { onClose: () => void }) {
                     {isOwned && <Chip tone="green">máš</Chip>}
                     {locked && (
                       <Chip tone="danger">
-                        od {housing(item.minHousing ?? 0).name}
+                        vyžaduje: {housing(item.minHousing ?? 0).name}
                       </Chip>
                     )}
                   </div>

@@ -461,7 +461,8 @@ export const useGame = create<GameState>()(
         }
         const target = HOUSING[next];
         if (s.money < target.price) {
-          set({ toast: `Na ${target.name} potřebuješ ${formatMoney(target.price)}.` });
+          // Housing names aren't declined, so the wording avoids needing a case.
+          set({ toast: `${target.name} stojí ${formatMoney(target.price)}.` });
           return;
         }
         set({
@@ -473,7 +474,7 @@ export const useGame = create<GameState>()(
             { ts: Date.now(), delta: -target.price, reason: `Přestěhování: ${target.name}` },
             ...s.ledger
           ].slice(0, 40),
-          toast: `Stěhuješ se do ${target.name}!`
+          toast: `Stěhuješ se! Nové bydlení: ${target.name}`
         });
         get().checkMillionaire();
       },
