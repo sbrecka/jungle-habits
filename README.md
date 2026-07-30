@@ -32,6 +32,28 @@ more than one eviction and three possessions to it.
 Money stays in Czech koruna — the economy is calibrated to Czech prices, and the
 million only means something at that scale.
 
+## Cloud sync (optional)
+
+Sync stores your save in Upstash Redis under a private code, so you can pull it
+down on a phone. It is manual in both directions: with no accounts there is
+nothing to merge two devices with, so an automatic push could silently overwrite
+newer progress.
+
+Connect an Upstash Redis store to the Vercel project, then pull the credentials
+locally:
+
+```bash
+npx vercel link && npx vercel env pull .env.local
+```
+
+`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are used, and the older
+`KV_REST_API_URL` / `KV_REST_API_TOKEN` names also work. Without them the API
+replies 503 and the UI hides sync — the game and the file backup carry on
+regardless.
+
+The sync code is the only thing protecting a save: 60 bits of randomness, used
+as both address and password. Saves expire after 180 days untouched.
+
 ## Development
 
 ```bash

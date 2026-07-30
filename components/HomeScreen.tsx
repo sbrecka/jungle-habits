@@ -14,6 +14,7 @@ import {
 import { dateKey, daysBetween, formatDayShort } from "@/lib/date";
 import { Bar, Btn, Chip, EmptyState, Panel, Sheet } from "./ui";
 import BackupPanel from "./BackupPanel";
+import SyncPanel from "./SyncPanel";
 
 export default function HomeScreen({ onClose }: { onClose: () => void }) {
   const money = useGame((s) => s.money);
@@ -165,6 +166,7 @@ export default function HomeScreen({ onClose }: { onClose: () => void }) {
       )}
 
       <BackupPanel />
+      <SyncPanel />
 
       <Btn
         variant="ghost"
