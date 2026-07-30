@@ -46,6 +46,7 @@ import {
   xpToNext
 } from "./constants";
 import { dateKey, daysBetween, keyPlusDays } from "./date";
+import { SAVE_KEY } from "./backup";
 
 let idCounter = 0;
 function uid(prefix = "id"): string {
@@ -708,7 +709,7 @@ export const useGame = create<GameState>()(
       dismissMillionaire: () => set({ showMillionaire: false })
     }),
     {
-      name: "grind-v1",
+      name: SAVE_KEY,
       storage: createJSONStorage(() => localStorage)
     }
   )
@@ -716,7 +717,7 @@ export const useGame = create<GameState>()(
 
 export function resetAllData(): void {
   try {
-    localStorage.removeItem("grind-v1");
+    localStorage.removeItem(SAVE_KEY);
   } catch {}
   window.location.reload();
 }

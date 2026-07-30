@@ -13,6 +13,7 @@ import {
 } from "@/lib/constants";
 import { dateKey, daysBetween, formatDayShort } from "@/lib/date";
 import { Bar, Btn, Chip, EmptyState, Panel, Sheet } from "./ui";
+import BackupPanel from "./BackupPanel";
 
 export default function HomeScreen({ onClose }: { onClose: () => void }) {
   const money = useGame((s) => s.money);
@@ -163,12 +164,14 @@ export default function HomeScreen({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
+      <BackupPanel />
+
       <Btn
         variant="ghost"
         onClick={() => {
           if (confirm("Smazat veškerý postup a začít znovu od nuly?")) resetAllData();
         }}
-        className="mt-6 w-full !text-[11px]"
+        className="mt-3 w-full !text-[11px]"
       >
         Začít znovu od nuly
       </Btn>
