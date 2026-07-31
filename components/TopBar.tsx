@@ -40,7 +40,7 @@ export default function TopBar() {
         : `rent in ${rentIn}d`;
 
   return (
-    <div className="border-b border-line bg-panel px-3 py-2">
+    <div className="safe-top border-b border-line bg-panel px-3 py-2">
       <div className="flex items-center gap-2">
         <Coin size={16} />
         <span className="font-display text-xl leading-none text-gold">{formatMoney(money)}</span>
