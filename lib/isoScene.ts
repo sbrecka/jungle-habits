@@ -1,6 +1,6 @@
 "use client";
 
-import { recolour, rect, spriteHeight, spriteWidth } from "./pixel";
+import { hash2, recolour, rect, spriteHeight, spriteWidth } from "./pixel";
 import {
   View,
   box,
@@ -15,6 +15,7 @@ import {
   hangNW,
   isoX,
   isoY,
+  shadowUnder,
   tile,
   wallNE,
   wallNW,
@@ -267,6 +268,14 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
 
   // ---- floor & walls
   drawFloor(ctx, v, pal.floorA, pal.floorB);
+  // Slight per-tile mottling; a perfectly even checker reads as plastic.
+  for (let j = 0; j < v.rows; j++) {
+    for (let i = 0; i < v.cols; i++) {
+      const n = hash2(i * 3.1, j * 7.7);
+      if (n > 0.72) tile(ctx, v, i, j, "rgba(255,255,255,0.035)");
+      else if (n < 0.24) tile(ctx, v, i, j, "rgba(0,0,0,0.045)");
+    }
+  }
   wallNW(ctx, v, { face: pal.wallNW, cap: pal.cap, base: pal.base });
   wallNE(ctx, v, { face: pal.wallNE, cap: pal.cap, base: pal.base });
 
@@ -300,6 +309,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   // ---- furniture against the back walls, far to near
   if (owned.shelf) {
     const [i, j] = L.shelf;
+    shadowUnder(ctx, v, i, j, 1, 1);
     box(ctx, v, i, j, 1, 1, 32, {
       top: "#8a5a34",
       left: "#5a3a20",
@@ -317,6 +327,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
 
   if (owned.sofa) {
     const [i, j] = L.sofa;
+    shadowUnder(ctx, v, i, j, 2, 1);
     // backrest first, then the seat in front of it
     box(ctx, v, i, j, 2, 1, 23, {
       top: "#4a8c80",
@@ -336,6 +347,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
 
   if (tier >= 2) {
     const [i, j] = L.wardrobe;
+    shadowUnder(ctx, v, i, j, 1, 1, 0.24);
     box(ctx, v, i, j, 1, 1, 44, {
       top: "#a4693a",
       left: "#67401f",
@@ -351,6 +363,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   // bed, or a mattress on the floor while you're at the bottom
   if (tier >= 2) {
     const [i, j] = L.bed;
+    shadowUnder(ctx, v, i, j, 1, 2);
     box(ctx, v, i, j, 1, 2, 6, {
       top: "#6b4a2c",
       left: "#4a3119",
@@ -368,6 +381,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
     drawOnTile(ctx, v, BLANKET, i, j + 1, 0, -19);
   } else {
     const [i, j] = L.bed;
+    shadowUnder(ctx, v, i, j, 1, 2, 0.14);
     box(ctx, v, i, j, 1, 2, 4, {
       top: "#8d8577",
       left: "#5d574c",
@@ -379,6 +393,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
 
   if (owned.aquarium) {
     const [i, j] = L.aquarium;
+    shadowUnder(ctx, v, i, j, 1, 1);
     box(ctx, v, i, j, 1, 1, 14, {
       top: "#5a3a20",
       left: "#442c17",
@@ -399,10 +414,17 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
     faceDotSW(ctx, v, i, j, 1, 9, 15, "#e06a5f", 2);
   }
 
-  if (owned.server) drawOnTile(ctx, v, SERVER, L.server[0], L.server[1]);
-  if (owned.plant) drawOnTile(ctx, v, PLANT, L.plant[0], L.plant[1]);
+  if (owned.server) {
+    shadowUnder(ctx, v, L.server[0], L.server[1], 1, 1, 0.16);
+    drawOnTile(ctx, v, SERVER, L.server[0], L.server[1]);
+  }
+  if (owned.plant) {
+    shadowUnder(ctx, v, L.plant[0], L.plant[1], 1, 1, 0.14);
+    drawOnTile(ctx, v, PLANT, L.plant[0], L.plant[1]);
+  }
 
   // ---- chair, character, then the desk in front of them
+  shadowUnder(ctx, v, L.char[0], L.char[1], 1, 1, 0.16);
   if (owned.chair) drawOnTile(ctx, v, CHAIR_BACK, L.char[0], L.char[1], 0, -6);
 
   const outfit = OUTFITS[Math.max(0, Math.min(OUTFITS.length - 1, tier))];
@@ -427,6 +449,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   const deskH = owned.standingdesk ? DESK_H_STANDING : DESK_H;
   {
     const [i, j] = L.desk;
+    shadowUnder(ctx, v, i, j, L.deskW, 1, 0.24);
     box(ctx, v, i, j, L.deskW, 1, deskH, {
       top: tier >= 2 ? "#a5743f" : "#8a5a34",
       left: owned.standingdesk ? "#33363d" : "#4e3117",

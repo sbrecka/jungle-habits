@@ -7,6 +7,7 @@ import {
   CATEGORY_LABEL,
   SHOP_ITEMS,
   formatMoney,
+  dayCount,
   formatMoneyShort,
   housing
 } from "@/lib/constants";
@@ -39,7 +40,7 @@ export default function ShopScreen({ onClose }: { onClose: () => void }) {
               food <= 0 ? "text-danger" : food <= 2 ? "text-warn" : "text-text"
             }`}
           >
-            {food} days
+            {dayCount(food)}
           </p>
         </Panel>
         <Panel className="flex-1 !p-2">

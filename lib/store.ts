@@ -38,6 +38,7 @@ import {
   XP_PER_HABIT,
   XP_PER_TASK,
   careerMult,
+  dayCount,
   energyMult,
   formatMoney,
   housing,
@@ -440,7 +441,7 @@ export const useGame = create<GameState>()(
             energy: Math.min(ENERGY_MAX, s.energy + (item.energy ?? 0)),
             starveDays: 0,
             ledger: ledger.slice(0, 40),
-            toast: `${item.name} — ${s.food + (item.foodDays ?? 0)} days of food in`
+            toast: `${item.name} — ${dayCount(s.food + (item.foodDays ?? 0))} of food in`
           });
         } else {
           set({

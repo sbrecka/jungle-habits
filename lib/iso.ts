@@ -39,6 +39,20 @@ function diamondHalf(y: number): number {
   return y < HTH ? y * 2 + 2 : (TH - 1 - y) * 2 + 2;
 }
 
+/** A tile diamond at an arbitrary screen position. */
+function diamondAt(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  colour: string
+): void {
+  ctx.fillStyle = colour;
+  for (let y = 0; y < TH; y++) {
+    const half = diamondHalf(y);
+    ctx.fillRect(cx - half, cy + y, half * 2, 1);
+  }
+}
+
 /** One floor tile. `lift` raises it (used for box top faces). */
 export function tile(
   ctx: CanvasRenderingContext2D,
@@ -48,12 +62,32 @@ export function tile(
   colour: string,
   lift = 0
 ): void {
-  const cx = isoX(v, i, j);
-  const cy = isoY(v, i, j) - lift;
-  ctx.fillStyle = colour;
-  for (let y = 0; y < TH; y++) {
-    const half = diamondHalf(y);
-    ctx.fillRect(cx - half, cy + y, half * 2, 1);
+  diamondAt(ctx, isoX(v, i, j), isoY(v, i, j) - lift, colour);
+}
+
+/**
+ * A soft patch of darkness on the floor under an object. Offset towards the
+ * camera so it peeks out from under the footprint — without it every piece of
+ * furniture looks like it is hovering a few pixels off the ground.
+ */
+export function shadowUnder(
+  ctx: CanvasRenderingContext2D,
+  v: View,
+  i: number,
+  j: number,
+  w: number,
+  d: number,
+  alpha = 0.2
+): void {
+  const outer = `rgba(0,0,0,${alpha * 0.5})`;
+  const inner = `rgba(0,0,0,${alpha})`;
+  for (let a = 0; a < w; a++) {
+    for (let b = 0; b < d; b++) {
+      const x = isoX(v, i + a, j + b);
+      const y = isoY(v, i + a, j + b);
+      diamondAt(ctx, x + 4, y + 3, outer);
+      diamondAt(ctx, x + 2, y + 2, inner);
+    }
   }
 }
 
@@ -116,6 +150,20 @@ export function box(
   ctx.fillStyle = pal.right;
   for (let k = 0; k < d * HTH; k++) {
     ctx.fillRect(sxx + k * 2, syy - k - h, 2, h + 1);
+  }
+
+  // Light catches the top of each upright face and falls off towards the
+  // floor, which is what stops tall boxes reading as flat slabs of colour.
+  if (h > 4) {
+    const lit = "rgba(255,255,255,0.07)";
+    const shade = "rgba(0,0,0,0.10)";
+    const band = Math.min(3, Math.max(1, Math.round(h / 8)));
+    ctx.fillStyle = lit;
+    for (let k = 0; k < w * HTH; k++) ctx.fillRect(wxx + k * 2, wyy + k - h, 2, band);
+    for (let k = 0; k < d * HTH; k++) ctx.fillRect(sxx + k * 2, syy - k - h, 2, band);
+    ctx.fillStyle = shade;
+    for (let k = 0; k < w * HTH; k++) ctx.fillRect(wxx + k * 2, wyy + k - band, 2, band + 1);
+    for (let k = 0; k < d * HTH; k++) ctx.fillRect(sxx + k * 2, syy - k - band, 2, band + 1);
   }
   // top
   for (let a = 0; a < w; a++) {
@@ -251,6 +299,14 @@ export function wallNE(ctx: CanvasRenderingContext2D, v: View, pal: WallPal): vo
     const y = ny + k;
     ctx.fillStyle = pal.face;
     ctx.fillRect(x, y - v.wallH, 2, v.wallH);
+    // Light pools near the ceiling and drains towards the floor, so a big flat
+    // wall reads as a surface rather than a block of paint.
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillRect(x, y - v.wallH, 2, Math.round(v.wallH * 0.35));
+    ctx.fillStyle = "rgba(0,0,0,0.05)";
+    ctx.fillRect(x, y - Math.round(v.wallH * 0.4), 2, Math.round(v.wallH * 0.4));
+    ctx.fillStyle = "rgba(0,0,0,0.07)";
+    ctx.fillRect(x, y - 14, 2, 14);
     ctx.fillStyle = pal.base;
     ctx.fillRect(x, y - 5, 2, 5);
     ctx.fillStyle = pal.cap;
@@ -269,6 +325,14 @@ export function wallNW(ctx: CanvasRenderingContext2D, v: View, pal: WallPal): vo
     const y = ny + k;
     ctx.fillStyle = pal.face;
     ctx.fillRect(x, y - v.wallH, 2, v.wallH);
+    // Light pools near the ceiling and drains towards the floor, so a big flat
+    // wall reads as a surface rather than a block of paint.
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillRect(x, y - v.wallH, 2, Math.round(v.wallH * 0.35));
+    ctx.fillStyle = "rgba(0,0,0,0.05)";
+    ctx.fillRect(x, y - Math.round(v.wallH * 0.4), 2, Math.round(v.wallH * 0.4));
+    ctx.fillStyle = "rgba(0,0,0,0.07)";
+    ctx.fillRect(x, y - 14, 2, 14);
     ctx.fillStyle = pal.base;
     ctx.fillRect(x, y - 5, 2, 5);
     ctx.fillStyle = pal.cap;

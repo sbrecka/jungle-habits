@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useGame } from "@/lib/store";
 import { GameEvent } from "@/lib/types";
-import { formatMoney, housing } from "@/lib/constants";
+import { dayCount, formatMoney, housing } from "@/lib/constants";
 import { formatDayShort } from "@/lib/date";
 import { Btn, Panel } from "./ui";
 
@@ -174,7 +174,7 @@ export function WarningStrip() {
   const warnings: { text: string; tone: string }[] = [];
   if (food <= 0)
     warnings.push({ text: "Nothing to eat — every day without food drains your energy.", tone: "danger" });
-  else if (food <= 2) warnings.push({ text: `Only ${food} days of food left.`, tone: "warn" });
+  else if (food <= 2) warnings.push({ text: `Only ${dayCount(food)} of food left.`, tone: "warn" });
   if (lateDays > 0)
     warnings.push({ text: "Rent is overdue. Eviction is coming.", tone: "danger" });
   if (energy < 30 && food > 0)
