@@ -19,6 +19,8 @@ import {
   CONTRACT_TITLES,
   ENERGY_DAILY_DRAIN,
   ENERGY_MAX,
+  FOOD_ENERGY_PER_DAY,
+  HABIT_ENERGY_V1,
   HOUSING,
   MAX_CATCHUP_DAYS,
   MAX_EVICTIONS_PER_CATCHUP,
@@ -41,6 +43,7 @@ import {
   dayCount,
   energyMult,
   formatMoney,
+  habitGain,
   housing,
   seedHabits,
   shopItem,
@@ -84,9 +87,12 @@ export function comfortTotal(owned: Owned): number {
   return c;
 }
 
-/** Comfort speeds recovery, but can't fully cancel the daily drain forever. */
+/**
+ * Comfort speeds recovery but is capped well below the daily drain, so a fully
+ * furnished flat still cannot carry you without habits.
+ */
 export function comfortRecovery(owned: Owned): number {
-  return Math.min(12, comfortTotal(owned) * 1.5);
+  return Math.min(8, comfortTotal(owned));
 }
 
 export function ownedValue(owned: Owned): number {
@@ -183,6 +189,10 @@ export interface GameState {
   offers: ContractOffer[];
   ledger: LedgerEntry[];
 
+  /** Energy actually granted per habit per day, keyed `habitId:date`.
+   *  Needed because the amount depends on how tired you were at the time. */
+  habitGrants: Record<string, number>;
+
   // bookkeeping
   lastDay: string;
   report: GameEvent[] | null;
@@ -242,6 +252,8 @@ export const useGame = create<GameState>()(
       contract: null,
       offers: makeOffers(0),
       ledger: [],
+
+      habitGrants: {},
 
       lastDay: dateKey(),
       report: null,
@@ -340,6 +352,19 @@ export const useGame = create<GameState>()(
         if (!habit) return;
         const wasDone = habit.history[today] === "done";
 
+        // The gain depends on how tired you were when you ticked it, so the
+        // exact amount is recorded and given back verbatim on undo.
+        const grantKey = `${id}:${today}`;
+        const grants = { ...s.habitGrants };
+        let delta: number;
+        if (wasDone) {
+          delta = -(grants[grantKey] ?? habit.energy);
+          delete grants[grantKey];
+        } else {
+          delta = habitGain(habit.energy, s.energy);
+          grants[grantKey] = delta;
+        }
+
         set({
           habits: s.habits.map((h) => {
             if (h.id !== id) return h;
@@ -348,13 +373,11 @@ export const useGame = create<GameState>()(
             else history[today] = "done";
             return { ...h, history };
           }),
-          energy: Math.max(
-            0,
-            Math.min(ENERGY_MAX, s.energy + (wasDone ? -habit.energy : habit.energy))
-          )
+          habitGrants: grants,
+          energy: Math.max(0, Math.min(ENERGY_MAX, s.energy + delta))
         });
         get().addXPInternal(wasDone ? -XP_PER_HABIT : XP_PER_HABIT);
-        if (!wasDone) set({ toast: `${habit.title} ✓  +${habit.energy} energy` });
+        if (!wasDone) set({ toast: `${habit.title} ✓  +${delta} energy` });
       },
 
       addHabit: (title, energy) => {
@@ -510,9 +533,9 @@ export const useGame = create<GameState>()(
         }
         set({
           food: s.food - 1,
-          energy: Math.min(ENERGY_MAX, s.energy + 10),
+          energy: Math.min(ENERGY_MAX, s.energy + FOOD_ENERGY_PER_DAY),
           starveDays: 0,
-          toast: "You ate. +10 energy"
+          toast: `You ate. +${FOOD_ENERGY_PER_DAY} energy`
         });
       },
 
@@ -556,7 +579,7 @@ export const useGame = create<GameState>()(
 
           if (food > 0) {
             food -= 1;
-            energy += 10;
+            energy += FOOD_ENERGY_PER_DAY;
             starveDays = 0;
           } else {
             starveDays += 1;
@@ -711,7 +734,20 @@ export const useGame = create<GameState>()(
     }),
     {
       name: SAVE_KEY,
-      storage: createJSONStorage(() => localStorage)
+      storage: createJSONStorage(() => localStorage),
+      version: 1,
+      // Habits are persisted, so a save made before the energy rebalance would
+      // keep the old, far more generous values. Bring the seeded ones in line.
+      migrate: (persisted, from) => {
+        const state = persisted as Partial<GameState>;
+        if (from < 1 && Array.isArray(state.habits)) {
+          state.habits = state.habits.map((h) =>
+            HABIT_ENERGY_V1[h.id] ? { ...h, energy: HABIT_ENERGY_V1[h.id] } : h
+          );
+        }
+        if (!state.habitGrants) state.habitGrants = {};
+        return state as GameState;
+      }
     }
   )
 );

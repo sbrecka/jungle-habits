@@ -35,25 +35,40 @@ export const SIZE_COLOR: Record<TaskSize, string> = {
 
 /** Tired people earn less. This is what makes habits matter. */
 export function energyMult(energy: number): number {
-  if (energy >= 80) return 1.2;
-  if (energy >= 55) return 1.05;
-  if (energy >= 30) return 0.85;
-  if (energy >= 10) return 0.6;
+  if (energy >= 85) return 1.25;
+  if (energy >= 65) return 1.05;
+  if (energy >= 40) return 0.85;
+  if (energy >= 20) return 0.6;
   return 0.35;
 }
 
 export function energyLabel(energy: number): string {
-  if (energy >= 80) return "On form";
-  if (energy >= 55) return "Doing fine";
-  if (energy >= 30) return "Tired";
-  if (energy >= 10) return "Exhausted";
+  if (energy >= 85) return "On form";
+  if (energy >= 65) return "Doing fine";
+  if (energy >= 40) return "Tired";
+  if (energy >= 20) return "Exhausted";
   return "Running on empty";
+}
+
+/**
+ * A habit restores less the closer you already are to full, so you cannot rest
+ * your way to a permanent 100 — the top band has to be spent and re-earned.
+ * Never drops below a fifth of the habit's face value.
+ */
+export function habitGain(base: number, energy: number): number {
+  return Math.max(1, Math.round(base * Math.max(0.2, 1 - energy / 150)));
 }
 
 /* ---------- needs / harsh rules ---------- */
 
 export const ENERGY_MAX = 100;
-export const ENERGY_DAILY_DRAIN = 18;
+/**
+ * Living costs more energy than food and comfort give back, so standing still
+ * loses ground. Habits are the only way to stay in the good bands.
+ */
+export const ENERGY_DAILY_DRAIN = 26;
+/** What a day's food gives back on its own. */
+export const FOOD_ENERGY_PER_DAY = 6;
 /** Energy lost per day with nothing to eat. */
 export const STARVE_ENERGY = 26;
 
@@ -452,14 +467,24 @@ export const CONTRACT_TITLES = [
 
 export function seedHabits(): Habit[] {
   return [
-    { id: "habit-sleep", title: "Sleep 7+ hours", icon: "sleep", energy: 22, history: {} },
-    { id: "habit-gym", title: "Exercise or move", icon: "gym", energy: 14, history: {} },
-    { id: "habit-sun", title: "10 minutes outside in the morning", icon: "sun", energy: 10, history: {} },
-    { id: "habit-nophone", title: "No phone before 10:00", icon: "nophone", energy: 10, history: {} },
-    { id: "habit-water", title: "2 litres of water", icon: "water", energy: 8, history: {} },
-    { id: "habit-read", title: "Read 10 pages", icon: "read", energy: 6, history: {} }
+    { id: "habit-sleep", title: "Sleep 7+ hours", icon: "sleep", energy: 16, history: {} },
+    { id: "habit-gym", title: "Exercise or move", icon: "gym", energy: 10, history: {} },
+    { id: "habit-sun", title: "10 minutes outside in the morning", icon: "sun", energy: 7, history: {} },
+    { id: "habit-nophone", title: "No phone before 10:00", icon: "nophone", energy: 7, history: {} },
+    { id: "habit-water", title: "2 litres of water", icon: "water", energy: 5, history: {} },
+    { id: "habit-read", title: "Read 10 pages", icon: "read", energy: 4, history: {} }
   ];
 }
+
+/** Seeded habits were worth more before the energy rebalance. */
+export const HABIT_ENERGY_V1: Record<string, number> = {
+  "habit-sleep": 16,
+  "habit-gym": 10,
+  "habit-sun": 7,
+  "habit-nophone": 7,
+  "habit-water": 5,
+  "habit-read": 4
+};
 
 /* ---------- formatting ---------- */
 

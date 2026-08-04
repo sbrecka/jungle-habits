@@ -42,9 +42,11 @@ import {
   OUTFITS,
   PILLOW,
   PLANT,
+  PLANT_SWAY,
   POSTER,
   SERVER,
   TV_WALL,
+  TV_WALL_LIT,
   WINDOW_DAY,
   WINDOW_NIGHT
 } from "./isoSprites";
@@ -295,7 +297,20 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   if (tier >= 1) hangNW(ctx, v, DOOR, v.rows - 1.7, spriteHeight(DOOR));
   if (owned.poster) hangNW(ctx, v, POSTER, 0.9, v.wallH - 18);
   if (owned.art) hangNW(ctx, v, ART, v.rows - 2.8, v.wallH - 16);
-  if (owned.tv) hangNE(ctx, v, TV_WALL, 0.5, v.wallH - 20);
+  if (owned.tv) {
+    // Two frames alternating on an uneven beat reads as a screen, not a poster.
+    const lit = !still && Math.floor(frame / 7) % 3 === 0;
+    hangNE(ctx, v, lit ? TV_WALL_LIT : TV_WALL, 0.5, v.wallH - 20);
+  }
+
+  // ---- daylight falling in through the window
+  if (tier >= 1 && !night) {
+    for (let j = 0; j < Math.min(2, v.rows); j++) {
+      for (let i = Math.max(0, v.cols - 4); i < v.cols - 1; i++) {
+        tile(ctx, v, i, j, "rgba(255,244,214,0.09)");
+      }
+    }
+  }
 
   // ---- rug
   if (owned.rug) {
@@ -409,9 +424,12 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
     // water line and a couple of fish, so it reads as a tank not a blue cube
     faceLineSE(ctx, v, i, j, 1, 1, 24, "#b6e4f5");
     faceLineSW(ctx, v, i, j, 1, 1, 24, "#8fd0ea");
-    faceDotSE(ctx, v, i, j, 1, 1, 5, 18, "#e8913f", 2);
-    faceDotSE(ctx, v, i, j, 1, 1, 11, 12, "#e8d24f", 2);
-    faceDotSW(ctx, v, i, j, 1, 9, 15, "#e06a5f", 2);
+    // fish drift back and forth rather than sitting pinned to the glass
+    const swim = (speed: number, span: number, phase: number) =>
+      still ? 0 : Math.round(Math.sin(frame / speed + phase) * span);
+    faceDotSE(ctx, v, i, j, 1, 1, 5 + swim(31, 2, 0), 18, "#e8913f", 2);
+    faceDotSE(ctx, v, i, j, 1, 1, 10 + swim(23, 2, 2), 12 + swim(47, 1, 1), "#e8d24f", 2);
+    faceDotSW(ctx, v, i, j, 1, 8 + swim(37, 2, 4), 15, "#e06a5f", 2);
   }
 
   if (owned.server) {
@@ -420,7 +438,9 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   }
   if (owned.plant) {
     shadowUnder(ctx, v, L.plant[0], L.plant[1], 1, 1, 0.14);
-    drawOnTile(ctx, v, PLANT, L.plant[0], L.plant[1]);
+    // Only the leaves differ between the two sprites, so the pot stays put.
+    const swaying = !still && Math.floor(frame / 34) % 2 === 0;
+    drawOnTile(ctx, v, swaying ? PLANT_SWAY : PLANT, L.plant[0], L.plant[1]);
   }
 
   // ---- chair, character, then the desk in front of them
@@ -429,7 +449,8 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
 
   const outfit = OUTFITS[Math.max(0, Math.min(OUTFITS.length - 1, tier))];
   const bodySprite = recolour(CHAR, `fit${tier}`, outfit);
-  const bob = still ? 0 : Math.floor(frame / 8) % 2;
+  // Breathing, not twitching: roughly one cycle every three seconds.
+  const bob = still ? 0 : Math.floor(frame / 30) % 2;
   // Sits so the desk edge crosses the hips — legs hidden, torso and head clear.
   const charDY = -6 + bob + (tired ? 2 : 0);
   drawOnTile(ctx, v, bodySprite, L.char[0], L.char[1], 0, charDY);
@@ -489,9 +510,25 @@ export function drawScene(ctx: CanvasRenderingContext2D, p: SceneParams): void {
   if (owned.lamp) drawOnTile(ctx, v, LAMP, sideI, deskJ, -2, onDesk);
 
   // ---- light
+  // steam curling off the mug
+  if (!still) {
+    const mx = isoX(v, sideI, deskJ) + 8;
+    const my = isoY(v, sideI, deskJ) + 16 + onDesk + 3;
+    for (let i = 0; i < 3; i++) {
+      const t = (frame + i * 21) % 63;
+      const a = 0.34 * (1 - t / 63);
+      rect(ctx, mx + Math.round(Math.sin(t / 7) * 2), my - Math.round(t / 4), 1, 1,
+        `rgba(226,232,240,${a.toFixed(3)})`);
+    }
+  }
+
   const sx = isoX(v, midI, deskJ);
   const sy = isoY(v, midI, deskJ) - deskH - 6;
-  glow(ctx, sx, sy, 30, night ? "rgba(120,180,235,0.20)" : "rgba(150,195,235,0.10)");
+  // The screen breathes a little, the way a real one does.
+  const pulse = still ? 0 : Math.sin(frame / 17) * 0.02;
+  glow(ctx, sx, sy, 30, night
+    ? `rgba(120,180,235,${(0.2 + pulse).toFixed(3)})`
+    : `rgba(150,195,235,${(0.1 + pulse * 0.6).toFixed(3)})`);
   if (owned.lamp) {
     glow(ctx, isoX(v, sideI, deskJ), sy, 24, "rgba(255,220,140,0.16)");
   }

@@ -85,8 +85,10 @@ export function shadowUnder(
     for (let b = 0; b < d; b++) {
       const x = isoX(v, i + a, j + b);
       const y = isoY(v, i + a, j + b);
-      diamondAt(ctx, x + 4, y + 3, outer);
-      diamondAt(ctx, x + 2, y + 2, inner);
+      // Kept small: a larger offset spills past the room's outer tiles and
+      // leaves a shadow floating on the backdrop.
+      diamondAt(ctx, x + 3, y + 2, outer);
+      diamondAt(ctx, x + 1, y + 1, inner);
     }
   }
 }

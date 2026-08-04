@@ -349,6 +349,41 @@ export const PLANT = S("plant", [
   "....ooooo"
 ]);
 
+/** Same pot, leaves nudged a pixel — alternating the two makes it sway. */
+export const PLANT_SWAY = S("plant-sway", [
+  ".......f",
+  "......fFf...f",
+  "....ffFffFffF",
+  "...fFfffFfffFf",
+  "..fFffFfffFffF",
+  "...ffFfffFfffF",
+  "....fFfffFffF",
+  ".....offFffo",
+  "......offo",
+  ".....ooo",
+  "....onnno",
+  "....onmno",
+  "....onnno",
+  "....oNNNo",
+  "....ooooo"
+]);
+
+/** Brighter frame, alternated to make the screen flicker. */
+export const TV_WALL_LIT = S("tv-wall-lit", [
+  "oooooooooooooooooooooooo",
+  "okkkkkkkkkkkkkkkkkkkkkko",
+  "okbbbbbbbbbbbbbbbbbbbbko",
+  "okbbbbbbbbbbbbbbbbbbbbko",
+  "okbBBBBBBBBBBBBBBBBBBbko",
+  "okbbbbbbbbbbbbbbbbbbbbko",
+  "okbBBBBBBBBBBBBBBBBBBbko",
+  "okbbbbbbbbbbbbbbbbbbbbko",
+  "okkkkkkkkkkkkkkkkkkkkkko",
+  "oooooooooooooooooooooooo",
+  ".........okkkko",
+  ".........ooooooo"
+], { b: "#a8dcf7", B: "#4a95c9" });
+
 export const LAMP = S("lamp", [
   "...oooooo",
   "..oiiiiiio",
